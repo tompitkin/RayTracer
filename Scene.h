@@ -14,11 +14,15 @@
 
 class Scene {
 public:
-	Scene(int* argc, char** argv, int x, int y);
+	Scene(int* argc, char** argv, int width, int height);
 	virtual ~Scene();
 
 	void init(int* argc, char** argv);
 	static void display();
+
+private:
+	int width;
+	int height;
 };
 
 #endif /* SCENE_H_ */

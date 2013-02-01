@@ -7,10 +7,24 @@
 
 #include "Scene.h"
 
-Scene::Scene(int* argc, char** argv, int x, int y) {
+Scene::Scene(int* argc, char** argv, int width, int height) {
+	this->width = width;
+	this->height = height;
 	init(argc, argv);
+}
 
-	glutInitWindowSize(x, y);
+Scene::~Scene() {
+	// TODO Auto-generated destructor stub
+}
+
+void Scene::init(int* argc, char** argv)
+{
+	glutInit(argc, argv);
+	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	glutInitWindowSize(width, height);
 	glutCreateWindow("Ray Tracer");
 
 	GLenum err = glewInit();
@@ -27,20 +41,9 @@ Scene::Scene(int* argc, char** argv, int x, int y) {
 		fprintf(stdout, "GL3 is NOT available\n");
 		return;
 	}
+
 	glutDisplayFunc(&display);
 	glutMainLoop();
-}
-
-Scene::~Scene() {
-	// TODO Auto-generated destructor stub
-}
-
-void Scene::init(int* argc, char** argv)
-{
-	glutInit(argc, argv);
-	glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Scene::display()
