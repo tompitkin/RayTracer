@@ -1,12 +1,11 @@
-/*
- * main.cpp
- *
- *  Created on: Jan 26, 2013
- *      Author: tom
- */
+#include "mainwindow.h"
+#include <QApplication>
 
-#include "Scene.h"
-
-int main(int argc, char** argv){
-	Scene scene(&argc, argv, 800, 600);
+int main(int argc, char *argv[])
+{
+    QApplication a(argc, argv);
+    MainWindow w;
+    w.showMaximized();
+    
+    return a.exec();
 }
