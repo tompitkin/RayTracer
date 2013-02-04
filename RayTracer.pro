@@ -14,11 +14,21 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    scene.cpp
+    scene.cpp \
+    pmesh.cpp \
+    objloaderbuffer.cpp \
+    camera.cpp \
+    matrixops.cpp
 
 HEADERS  += mainwindow.h \
-    scene.h
+    scene.h \
+    pmesh.h \
+    objloaderbuffer.h \
+    camera.h \
+    matrixops.h
 
 FORMS    += mainwindow.ui
 
 LIBS += -lGLEW
+
+QMAKE_CXXFLAGS += -std=c++11

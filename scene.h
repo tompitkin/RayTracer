@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include <QGLWidget>
+#include "camera.h"
 
 class Scene : public QGLWidget
 {
@@ -15,6 +16,9 @@ protected:
     void initializeGL();
     void resizeGL(int x, int h);
     void paintGL();
+
+private:
+    Camera camera;
     
 signals:
     

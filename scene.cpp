@@ -3,10 +3,14 @@
 Scene::Scene(QWidget *parent) :
     QGLWidget(parent)
 {
-}
+    //This is a work around for a bug in QT 5.0 that won't allow you
+    //to use any OpenGL version >= 3.0
+    QGLFormat format;
+    format.setVersion(4, 3);
+    QGLFormat::setDefaultFormat(format);
+    this->setFormat(format);
 
-void Scene::initializeGL()
-{
+    makeCurrent();
     GLenum err = glewInit();
     if (err != GLEW_OK)
     {
@@ -19,8 +23,12 @@ void Scene::initializeGL()
     {
         fprintf(stdout, "GL3 is NOT available\n");
     }
+}
 
+void Scene::initializeGL()
+{
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
 void Scene::resizeGL(int x, int h)
