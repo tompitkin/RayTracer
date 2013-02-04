@@ -18,14 +18,16 @@ SOURCES += main.cpp\
     pmesh.cpp \
     objloaderbuffer.cpp \
     camera.cpp \
-    matrixops.cpp
+    matrixops.cpp \
+    double3d.cpp
 
 HEADERS  += mainwindow.h \
     scene.h \
     pmesh.h \
     objloaderbuffer.h \
     camera.h \
-    matrixops.h
+    matrixops.h \
+    double3d.h
 
 FORMS    += mainwindow.ui
 
