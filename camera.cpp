@@ -7,11 +7,14 @@ Camera::Camera()
     viewportWidth = viewportRight - viewportLeft;
     viewportHeight = viewportTop - viewportBottom;
     viewMat = makeViewingTransform();
+    projMat = makePersepctiveTransform();
+
 }
 
 Camera::~Camera()
 {
     delete []viewMat;
+    delete []projMat;
 }
 
 double *Camera::makeViewingTransform()
@@ -44,4 +47,19 @@ double *Camera::makeViewingTransform()
     delete []trans;
 
     return viewTransform;
+}
+
+double *Camera::makePersepctiveTransform()
+{
+    double *trans = MatrixOps::newIdentity();
+    trans[0] = (2.0f * near)/(windowRight - windowLeft);
+    trans[5] = (2.0f * near)/(windowTop - windowBottom);
+    trans[8] = (windowRight + windowLeft)/(windowRight - windowLeft);
+    trans[9] = (windowTop + windowBottom)/(windowTop - windowBottom);
+    trans[10] = -(far + near)/(far - near);
+    trans[11] = -1.0f;
+    trans[14] = (-2.0f * far * near)/(far - near);
+    trans[15] = 0.0f;
+    return trans;
+
 }

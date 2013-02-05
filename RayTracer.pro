@@ -18,16 +18,20 @@ SOURCES += main.cpp\
     pmesh.cpp \
     objloaderbuffer.cpp \
     camera.cpp \
-    matrixops.cpp \
-    double3d.cpp
+    MatrixManipulation/matrixops.cpp \
+    MatrixManipulation/double3d.cpp \
+    Uniforms/uniform.cpp \
+    Uniforms/matrix4uniform.cpp
 
 HEADERS  += mainwindow.h \
     scene.h \
     pmesh.h \
     objloaderbuffer.h \
     camera.h \
-    matrixops.h \
-    double3d.h
+    MatrixManipulation/matrixops.h \
+    MatrixManipulation/double3d.h \
+    Uniforms/uniform.h \
+    Uniforms/matrix4uniform.h
 
 FORMS    += mainwindow.ui
 

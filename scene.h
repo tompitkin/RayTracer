@@ -12,13 +12,12 @@ class Scene : public QGLWidget
 public:
     explicit Scene(QWidget *parent = 0);
 
+    Camera camera;
+
 protected:
     void initializeGL();
     void resizeGL(int x, int h);
     void paintGL();
-
-private:
-    Camera camera;
     
 signals:
     

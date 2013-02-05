@@ -1,8 +1,8 @@
 #ifndef CAMERA_H
 #define CAMERA_H
 
-#include "matrixops.h"
-#include "double3d.h"
+#include "MatrixManipulation/matrixops.h"
+#include "MatrixManipulation/double3d.h"
 
 class Camera
 {
@@ -10,12 +10,14 @@ public:
     Camera();
     virtual ~Camera();
 
-private:
     double *makeViewingTransform();
+    double *makePersepctiveTransform();
 
     Double3D eye = Double3D(0.0, 0.0, 10.0);
     Double3D center = Double3D(0.0, 0.0, 0.0);
     Double3D up = Double3D(0.0, 1.0, 0.0);
+    double near = 9.0;
+    double far = 10000.0;
     double windowWidth;
     double windowHeight;
     double windowRight = 5.0;
@@ -29,6 +31,7 @@ private:
     double viewportTop = 600.0;
     double viewportBottom = 0.0;
     double *viewMat;
+    double *projMat;
 };
 
 #endif // CAMERA_H
