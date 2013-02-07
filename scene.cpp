@@ -23,6 +23,18 @@ Scene::Scene(QWidget *parent) :
     {
         fprintf(stdout, "GL3 is NOT available\n");
     }
+
+    camera = new Camera();
+    objects = new vector<PMesh>;
+    curObject = NULL;
+    lights = new Lights(this);
+}
+
+Scene::~Scene()
+{
+    delete camera;
+    delete objects;
+    delete lights;
 }
 
 void Scene::initializeGL()

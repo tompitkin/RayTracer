@@ -8,13 +8,16 @@ Camera::Camera()
     viewportHeight = viewportTop - viewportBottom;
     viewMat = makeViewingTransform();
     projMat = makePersepctiveTransform();
-
+    viewMatUniform = new Matrix4Uniform(NULL, "viewMat");
+    projMatUniform = new Matrix4Uniform(NULL, "projMat");
 }
 
 Camera::~Camera()
 {
     delete []viewMat;
     delete []projMat;
+    delete viewMatUniform;
+    delete projMatUniform;
 }
 
 double *Camera::makeViewingTransform()
@@ -61,5 +64,4 @@ double *Camera::makePersepctiveTransform()
     trans[14] = (-2.0f * far * near)/(far - near);
     trans[15] = 0.0f;
     return trans;
-
 }

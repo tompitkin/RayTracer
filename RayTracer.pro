@@ -21,7 +21,8 @@ SOURCES += main.cpp\
     MatrixManipulation/matrixops.cpp \
     MatrixManipulation/double3d.cpp \
     Uniforms/uniform.cpp \
-    Uniforms/matrix4uniform.cpp
+    Uniforms/matrix4uniform.cpp \
+    lights.cpp
 
 HEADERS  += mainwindow.h \
     scene.h \
@@ -31,7 +32,8 @@ HEADERS  += mainwindow.h \
     MatrixManipulation/matrixops.h \
     MatrixManipulation/double3d.h \
     Uniforms/uniform.h \
-    Uniforms/matrix4uniform.h
+    Uniforms/matrix4uniform.h \
+    lights.h
 
 FORMS    += mainwindow.ui
 

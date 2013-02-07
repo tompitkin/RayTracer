@@ -4,15 +4,22 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include <QGLWidget>
+#include <vector>
 #include "camera.h"
+#include "pmesh.h"
+#include "lights.h"
 
 class Scene : public QGLWidget
 {
     Q_OBJECT
 public:
     explicit Scene(QWidget *parent = 0);
+    virtual ~Scene();
 
-    Camera camera;
+    vector<PMesh> *objects;
+    PMesh *curObject;
+    Camera *camera;
+    Lights *lights;
 
 protected:
     void initializeGL();

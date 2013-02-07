@@ -3,6 +3,7 @@
 
 #include "MatrixManipulation/matrixops.h"
 #include "MatrixManipulation/double3d.h"
+#include "Uniforms/matrix4uniform.h"
 
 class Camera
 {
@@ -32,6 +33,8 @@ public:
     double viewportBottom = 0.0;
     double *viewMat;
     double *projMat;
+    Matrix4Uniform *viewMatUniform = NULL;
+    Matrix4Uniform *projMatUniform = NULL;
 };
 
 #endif // CAMERA_H
