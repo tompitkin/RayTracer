@@ -20,7 +20,8 @@ public:
     PMesh *curObject;
     Camera *camera;
     Lights *lights;
-
+    bool updateLight;
+    vector<bool> updateLights;
 protected:
     void initializeGL();
     void resizeGL(int x, int h);
