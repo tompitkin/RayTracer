@@ -10,7 +10,7 @@ class Uniform
 public:
     Uniform();
 
-    virtual void update() = 0;
+    virtual void update(int shaderProgID) = 0;
 
     string shaderVarName;
     bool off = false;

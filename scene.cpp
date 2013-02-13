@@ -32,7 +32,7 @@ Scene::Scene(QWidget *parent) :
     updateLights = vector<bool>(8);
     for (int i = 0; i < (int)updateLights.size(); i++)
     {
-
+        updateLights[i] = false;
     }
 }
 

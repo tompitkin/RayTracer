@@ -2,6 +2,7 @@
 #define LIGHTS_H
 
 #include <vector>
+#include <string>
 
 using namespace std;
 
@@ -38,6 +39,8 @@ public:
 
     Lights(Scene *parent);
     virtual ~Lights();
+
+    void updateLight(int lightIndex);
 
     Light lights[8];
     Scene *theScene;

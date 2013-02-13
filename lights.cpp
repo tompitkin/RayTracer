@@ -31,3 +31,8 @@ Lights::Light::Light()
     quadraticAttenuation = 0.0f;
     location = LOCAL;
 }
+
+void Lights::updateLight(int lightIndex)
+{
+    string varNum = "lightSettings["+to_string(lightIndex)+"].";
+}

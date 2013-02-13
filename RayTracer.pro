@@ -22,7 +22,9 @@ SOURCES += main.cpp\
     MatrixManipulation/double3d.cpp \
     Uniforms/uniform.cpp \
     Uniforms/matrix4uniform.cpp \
-    lights.cpp
+    lights.cpp \
+    shaderprogram.cpp \
+    Utilities/gl.cpp \
 
 HEADERS  += mainwindow.h \
     scene.h \
@@ -33,10 +35,12 @@ HEADERS  += mainwindow.h \
     MatrixManipulation/double3d.h \
     Uniforms/uniform.h \
     Uniforms/matrix4uniform.h \
-    lights.h
+    lights.h \
+    shaderprogram.h \
+    Utilities/gl.h \
 
 FORMS    += mainwindow.ui
 
-LIBS += -lGLEW
+LIBS += -lGLEW -lGLU
 
 QMAKE_CXXFLAGS += -std=c++11
