@@ -7,6 +7,10 @@ FloatUniform::FloatUniform(float aFloat, string varName)
     needsUpdate = true;
 }
 
+FloatUniform::~FloatUniform()
+{
+}
+
 void FloatUniform::update(int shaderProgID)
 {
     int progLocation = glGetUniformLocation(shaderProgID, shaderVarName.c_str());

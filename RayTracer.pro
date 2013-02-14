@@ -62,3 +62,9 @@ HEADERS += \
 
 SOURCES += \
     Uniforms/floatuniform.cpp
+
+HEADERS += \
+    Uniforms/vec3uniform.h
+
+SOURCES += \
+    Uniforms/vec3uniform.cpp

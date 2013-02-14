@@ -11,6 +11,22 @@ Lights::Lights(Scene *parent)
 Lights::~Lights()
 {
     theScene = nullptr;
+    for (int x = 0; x < (int)lightAmb.size(); x++)
+        delete lightAmb[x];
+    for (int x = 0; x < (int)lightDiff.size(); x++)
+        delete lightDiff[x];
+    for (int x = 0; x < (int)lightSpec.size(); x++)
+        delete lightSpec[x];
+    for (int x = 0; x < (int)lightPosition.size(); x++)
+        delete lightPosition[x];
+    for (int x = 0; x < (int)lightSwitch.size(); x++)
+        delete lightSwitch[x];
+    for (int x = 0; x < (int)spotExponent.size(); x++)
+        delete spotExponent[x];
+    for (int x = 0; x < (int)spotCutoff.size(); x++)
+        delete spotCutoff[x];
+    for (int x = 0; x < (int)spotDirection.size(); x++)
+        delete spotDirection[x];
 }
 
 Lights::Light::Light()
@@ -35,4 +51,9 @@ Lights::Light::Light()
 void Lights::updateLight(int lightIndex)
 {
     string varNum = "lightSettings["+to_string(lightIndex)+"].";
+    if (lightSwitch[lightIndex] == nullptr)
+        lightSwitch[lightIndex] = new IntUniform(lights[lightIndex].lightSwitch, varNum+"lightSwitch");
+    else
+        lightSwitch[lightIndex]->theInt = lights[lightIndex].lightSwitch;
+    lightSwitch[lightIndex]->needsUpdate = true;
 }

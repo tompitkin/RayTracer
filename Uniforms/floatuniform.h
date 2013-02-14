@@ -9,6 +9,7 @@ class FloatUniform : public Uniform
 {
 public:
     FloatUniform(float aFloat, string varName);
+    virtual ~FloatUniform();
 
     virtual void update(int shaderProgID);
 

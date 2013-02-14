@@ -7,6 +7,10 @@ IntUniform::IntUniform(int anInt, string varName)
     needsUpdate = true;
 }
 
+IntUniform::~IntUniform()
+{
+}
+
 void IntUniform::update(int shaderProgID)
 {
     int progLocation = glGetUniformLocation(shaderProgID, shaderVarName.c_str());

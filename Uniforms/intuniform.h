@@ -9,6 +9,7 @@ class IntUniform : public Uniform
 {
 public:
     IntUniform(int anInt, string varName);
+    virtual ~IntUniform();
 
     virtual void update(int shaderProgID);
 

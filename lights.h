@@ -4,7 +4,9 @@
 #include <vector>
 #include <string>
 #include "Uniforms/vec4uniform.h"
+#include "Uniforms/vec3uniform.h"
 #include "Uniforms/intuniform.h"
+#include "Uniforms/floatuniform.h"
 
 using namespace std;
 
@@ -48,6 +50,13 @@ public:
     Scene *theScene;
 
     vector<Vec4Uniform*> lightAmb = vector<Vec4Uniform*>(8, nullptr);
+    vector<Vec4Uniform*> lightDiff = vector<Vec4Uniform*>(8, nullptr);
+    vector<Vec4Uniform*> lightSpec = vector<Vec4Uniform*>(8, nullptr);
+    vector<Vec4Uniform*> lightPosition = vector<Vec4Uniform*>(8, nullptr);
+    vector<IntUniform*> lightSwitch = vector<IntUniform*>(8, nullptr);
+    vector<FloatUniform*> spotExponent = vector<FloatUniform*>(8, nullptr);
+    vector<FloatUniform*> spotCutoff = vector<FloatUniform*>(8, nullptr);
+    vector<Vec3Uniform*> spotDirection = vector<Vec3Uniform*>(8, nullptr);
 };
 
 #endif // LIGHTS_H
