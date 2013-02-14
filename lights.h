@@ -3,6 +3,8 @@
 
 #include <vector>
 #include <string>
+#include "Uniforms/vec4uniform.h"
+#include "Uniforms/intuniform.h"
 
 using namespace std;
 
@@ -44,6 +46,8 @@ public:
 
     Light lights[8];
     Scene *theScene;
+
+    vector<Vec4Uniform*> lightAmb = vector<Vec4Uniform*>(8, nullptr);
 };
 
 #endif // LIGHTS_H

@@ -1,7 +1,6 @@
 #ifndef MATRIX4UNIFORM_H
 #define MATRIX4UNIFORM_H
 
-#include <stdio.h>
 #include <GL/glew.h>
 #include "uniform.h"
 #include "Utilities/gl.h"

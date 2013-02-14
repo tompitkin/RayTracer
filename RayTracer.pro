@@ -44,3 +44,21 @@ FORMS    += mainwindow.ui
 LIBS += -lGLEW -lGLU
 
 QMAKE_CXXFLAGS += -std=c++11
+
+HEADERS += \
+    Uniforms/intuniform.h
+
+SOURCES += \
+    Uniforms/intuniform.cpp
+
+HEADERS += \
+    Uniforms/vec4uniform.h
+
+SOURCES += \
+    Uniforms/vec4uniform.cpp
+
+HEADERS += \
+    Uniforms/floatuniform.h
+
+SOURCES += \
+    Uniforms/floatuniform.cpp
