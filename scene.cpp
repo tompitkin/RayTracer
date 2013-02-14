@@ -35,6 +35,7 @@ Scene::Scene(QWidget *parent) :
         lights->updateLight(i);
         updateLights[i] = false;
     }
+    updateLight = false;
 }
 
 Scene::~Scene()
