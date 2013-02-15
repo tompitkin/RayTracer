@@ -22,6 +22,10 @@ SOURCES += main.cpp\
     MatrixManipulation/double3d.cpp \
     Uniforms/uniform.cpp \
     Uniforms/matrix4uniform.cpp \
+    Uniforms/intuniform.cpp \
+    Uniforms/vec4uniform.cpp \
+    Uniforms/floatuniform.cpp \
+    Uniforms/vec3uniform.cpp \
     lights.cpp \
     shaderprogram.cpp \
     Utilities/gl.cpp \
@@ -35,6 +39,10 @@ HEADERS  += mainwindow.h \
     MatrixManipulation/double3d.h \
     Uniforms/uniform.h \
     Uniforms/matrix4uniform.h \
+    Uniforms/intuniform.h \
+    Uniforms/vec4uniform.h \
+    Uniforms/floatuniform.h \
+    Uniforms/vec3uniform.h \
     lights.h \
     shaderprogram.h \
     Utilities/gl.h \
@@ -44,27 +52,3 @@ FORMS    += mainwindow.ui
 LIBS += -lGLEW -lGLU
 
 QMAKE_CXXFLAGS += -std=c++11
-
-HEADERS += \
-    Uniforms/intuniform.h
-
-SOURCES += \
-    Uniforms/intuniform.cpp
-
-HEADERS += \
-    Uniforms/vec4uniform.h
-
-SOURCES += \
-    Uniforms/vec4uniform.cpp
-
-HEADERS += \
-    Uniforms/floatuniform.h
-
-SOURCES += \
-    Uniforms/floatuniform.cpp
-
-HEADERS += \
-    Uniforms/vec3uniform.h
-
-SOURCES += \
-    Uniforms/vec3uniform.cpp

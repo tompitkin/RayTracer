@@ -8,6 +8,7 @@
 #include "camera.h"
 #include "pmesh.h"
 #include "lights.h"
+#include "shaderprogram.h"
 
 class Scene : public QGLWidget
 {
@@ -22,6 +23,12 @@ public:
     Lights *lights;
     bool updateLight;
     vector<bool> updateLights;
+    ShaderProgram *shaderProg;
+    string vertShaderName = "";
+    string fragShaderName = "";
+    string defaultVertShader = "multi.vs";
+    string defaultFragShader = "multi.vs";
+
 protected:
     void initializeGL();
     void resizeGL(int x, int h);

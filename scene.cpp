@@ -36,6 +36,10 @@ Scene::Scene(QWidget *parent) :
         updateLights[i] = false;
     }
     updateLight = false;
+
+    shaderProg = new ShaderProgram();
+    if (vertShaderName.compare(""))
+        shaderProg->addShader(new ShaderProgram::Shader(defaultVertShader,false, false, -1, GL_VERTEX_SHADER));
 }
 
 Scene::~Scene()
@@ -43,6 +47,7 @@ Scene::~Scene()
     delete camera;
     delete objects;
     delete lights;
+    delete shaderProg;
 }
 
 void Scene::initializeGL()
