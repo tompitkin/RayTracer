@@ -17,6 +17,8 @@ public:
     explicit Scene(QWidget *parent = 0);
     virtual ~Scene();
 
+    void setupUniforms(ShaderProgram *theShader);
+
     vector<PMesh> *objects;
     PMesh *curObject;
     Camera *camera;

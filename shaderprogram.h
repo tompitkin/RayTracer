@@ -23,11 +23,13 @@ public:
     };
 
     ShaderProgram();
+    virtual ~ShaderProgram();
 
     void addShader(Shader *shader);
+    void addUniform(Uniform *toAdd);
 
     int progID;
-    vector<Uniform> uniformList;
+    vector<Uniform*> uniformList;
 
 private:
         string baseName;

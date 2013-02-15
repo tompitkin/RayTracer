@@ -40,6 +40,14 @@ Scene::Scene(QWidget *parent) :
     shaderProg = new ShaderProgram();
     if (vertShaderName.compare(""))
         shaderProg->addShader(new ShaderProgram::Shader(defaultVertShader,false, false, -1, GL_VERTEX_SHADER));
+    else
+        shaderProg->addShader(new ShaderProgram::Shader(vertShaderName, false, false, -1, GL_VERTEX_SHADER));
+    if (fragShaderName.compare(""))
+        shaderProg->addShader(new ShaderProgram::Shader(defaultFragShader, false, false, -1, GL_FRAGMENT_SHADER));
+    else
+        shaderProg->addShader(new ShaderProgram::Shader(fragShaderName, false, false, -1, GL_FRAGMENT_SHADER));
+
+    setupUniforms(shaderProg);
 }
 
 Scene::~Scene()
@@ -48,6 +56,11 @@ Scene::~Scene()
     delete objects;
     delete lights;
     delete shaderProg;
+}
+
+void Scene::setupUniforms(ShaderProgram *theShader)
+{
+    theShader->addUniform(camera->viewMatUniform);
 }
 
 void Scene::initializeGL()
