@@ -8,8 +8,9 @@ Camera::Camera()
     viewportHeight = viewportTop - viewportBottom;
     viewMat = makeViewingTransform();
     projMat = makePersepctiveTransform();
-    viewMatUniform = new Matrix4Uniform(NULL, "viewMat");
-    projMatUniform = new Matrix4Uniform(NULL, "projMat");
+    viewMatUniform = new Matrix4Uniform(nullptr, "viewMat");
+    projMatUniform = new Matrix4Uniform(nullptr, "projMat");
+    invCamUniform = new Matrix4Uniform(nullptr, "mInverseCamera");
 }
 
 Camera::~Camera()
@@ -18,6 +19,7 @@ Camera::~Camera()
     delete []projMat;
     delete viewMatUniform;
     delete projMatUniform;
+    delete invCamUniform;
 }
 
 double *Camera::makeViewingTransform()

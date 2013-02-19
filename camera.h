@@ -33,8 +33,9 @@ public:
     double viewportBottom = 0.0;
     double *viewMat;
     double *projMat;
-    Matrix4Uniform *viewMatUniform = NULL;
-    Matrix4Uniform *projMatUniform = NULL;
+    Matrix4Uniform *viewMatUniform = nullptr;
+    Matrix4Uniform *projMatUniform = nullptr;
+    Matrix4Uniform *invCamUniform = nullptr;
 };
 
 #endif // CAMERA_H

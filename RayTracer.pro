@@ -29,6 +29,8 @@ SOURCES += main.cpp\
     lights.cpp \
     shaderprogram.cpp \
     Utilities/gl.cpp \
+    axes.cpp \
+    shaderutils.cpp \
 
 HEADERS  += mainwindow.h \
     scene.h \
@@ -46,6 +48,11 @@ HEADERS  += mainwindow.h \
     lights.h \
     shaderprogram.h \
     Utilities/gl.h \
+    axes.h \
+    shaderutils.h \
+
+OTHER_FILES += Shaders/axes.frag \
+    Shaders/axes.vert \
 
 FORMS    += mainwindow.ui
 

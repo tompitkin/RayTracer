@@ -9,6 +9,8 @@
 #include "pmesh.h"
 #include "lights.h"
 #include "shaderprogram.h"
+#include "shaderutils.h"
+#include "axes.h"
 
 class Scene : public QGLWidget
 {
@@ -25,11 +27,15 @@ public:
     Lights *lights;
     bool updateLight;
     vector<bool> updateLights;
+    vector<ShaderProgram*> shaders;
     ShaderProgram *shaderProg;
+    bool drawAxis = true;
+    Axes *axes = nullptr;
     string vertShaderName = "";
     string fragShaderName = "";
     string defaultVertShader = "multi.vs";
     string defaultFragShader = "multi.vs";
+    ShaderUtils shUtil = ShaderUtils(this);
 
 protected:
     void initializeGL();

@@ -48,6 +48,9 @@ Scene::Scene(QWidget *parent) :
         shaderProg->addShader(new ShaderProgram::Shader(fragShaderName, false, false, -1, GL_FRAGMENT_SHADER));
 
     setupUniforms(shaderProg);
+
+    shaders.push_back(shaderProg);
+    drawAxis = true;
 }
 
 Scene::~Scene()
@@ -56,17 +59,50 @@ Scene::~Scene()
     delete objects;
     delete lights;
     delete shaderProg;
+    for (int x = 0; x < (int)shaders.size(); x++)
+        shaders[x] = nullptr;
+    delete axes;
 }
 
 void Scene::setupUniforms(ShaderProgram *theShader)
 {
     theShader->addUniform(camera->viewMatUniform);
+    theShader->addUniform(camera->invCamUniform);
+    theShader->addUniform(camera->projMatUniform);
+    for(int i =0; i < 8;i++)
+    {
+        theShader->addUniform(lights->lightSwitch[i]);
+        theShader->addUniform(lights->lightPosition[i]);
+        theShader->addUniform(lights->lightDiff[i]);
+        theShader->addUniform(lights->lightAmb[i]);
+        theShader->addUniform(lights->lightSpec[i]);
+        theShader->addUniform(lights->spotCutoff[i]);
+        theShader->addUniform(lights->spotDirection[i]);
+        theShader->addUniform(lights->spotExponent[i]);
+    }
+
+    camera->viewMatUniform->needsUpdate = true;
+    camera->invCamUniform->off = false;
+    camera->invCamUniform->needsUpdate = true;
+    camera->projMatUniform->needsUpdate = true;
+    for(int i =0; i < 8;i++)
+    {
+        lights->lightSwitch[i]->needsUpdate=true;
+        lights->lightDiff[i]->needsUpdate = true;
+        lights->lightPosition[i]->needsUpdate = true;
+
+        lights->lightAmb[i]->off = true;
+        lights->lightAmb[i]->needsUpdate = false;
+        lights->lightSpec[i]->off = true;
+        lights->lightSpec[i]->needsUpdate = false;
+    }
 }
 
 void Scene::initializeGL()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    axes = new Axes(this);
 }
 
 void Scene::resizeGL(int x, int h)

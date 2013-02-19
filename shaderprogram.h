@@ -30,11 +30,9 @@ public:
 
     int progID;
     vector<Uniform*> uniformList;
-
-private:
-        string baseName;
-        Shader *vertexShader;
-        Shader *fragmentShader;
+    string baseName;
+    Shader *vertexShader;
+    Shader *fragmentShader;
 };
 
 #endif // SHADERPROGRAM_H
