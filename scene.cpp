@@ -39,13 +39,13 @@ Scene::Scene(QWidget *parent) :
 
     shaderProg = new ShaderProgram();
     if (vertShaderName.compare(""))
-        shaderProg->addShader(new ShaderProgram::Shader(defaultVertShader,false, false, -1, GL_VERTEX_SHADER));
+        shaderProg->vertexShader = new ShaderProgram::Shader(defaultVertShader,false, false, -1, GL_VERTEX_SHADER, shaderProg);
     else
-        shaderProg->addShader(new ShaderProgram::Shader(vertShaderName, false, false, -1, GL_VERTEX_SHADER));
+        shaderProg->vertexShader = new ShaderProgram::Shader(vertShaderName, false, false, -1, GL_VERTEX_SHADER, shaderProg);
     if (fragShaderName.compare(""))
-        shaderProg->addShader(new ShaderProgram::Shader(defaultFragShader, false, false, -1, GL_FRAGMENT_SHADER));
+        shaderProg->fragmentShader = new ShaderProgram::Shader(defaultFragShader, false, false, -1, GL_FRAGMENT_SHADER, shaderProg);
     else
-        shaderProg->addShader(new ShaderProgram::Shader(fragShaderName, false, false, -1, GL_FRAGMENT_SHADER));
+        shaderProg->fragmentShader = new ShaderProgram::Shader(fragShaderName, false, false, -1, GL_FRAGMENT_SHADER, shaderProg);
 
     setupUniforms(shaderProg);
 

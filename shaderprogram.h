@@ -13,7 +13,7 @@ public:
     class Shader
     {
     public:
-        Shader(string name, bool compiled, bool attached, int id, int type);
+        Shader(string name, bool compiled, bool attached, int id, int type, ShaderProgram *prog);
 
         int type;
         string shaderName;
@@ -25,7 +25,6 @@ public:
     ShaderProgram();
     virtual ~ShaderProgram();
 
-    void addShader(Shader *shader);
     void addUniform(Uniform *toAdd);
 
     int progID;

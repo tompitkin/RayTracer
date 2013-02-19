@@ -13,25 +13,18 @@ ShaderProgram::~ShaderProgram()
     delete fragmentShader;
 }
 
-void ShaderProgram::addShader(Shader *shader)
-{
-    if (shader->type == GL_VERTEX_SHADER)
-    {
-        vertexShader = shader;
-        baseName = shader->shaderName.substr(0, shader->shaderName.find("."));
-    }
-    else
-        fragmentShader = shader;
-}
-
 void ShaderProgram::addUniform(Uniform *toAdd)
 {
     uniformList.push_back(toAdd);
 }
 
-ShaderProgram::Shader::Shader(string name, bool compiled, bool attached, int id, int type)
+ShaderProgram::Shader::Shader(string name, bool compiled, bool attached, int id, int type, ShaderProgram *prog)
 {
     shaderName = name;
+
+    if (type == GL_VERTEX_SHADER)
+        prog->baseName = name.substr(0, name.find("."));
+
     isCompiled = compiled;
     isAttached = attached;
     shaderID = id;

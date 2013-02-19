@@ -1,8 +1,6 @@
 #ifndef SHADERUTILS_H
 #define SHADERUTILS_H
 
-#include <QFile>
-#include <fstream>
 #include "shaderprogram.h"
 #include "Utilities/gl.h"
 
@@ -16,7 +14,7 @@ public:
 
     bool setupShaders(ShaderProgram *prog);
     static bool loadAndCompileShader(ShaderProgram::Shader *shaderInfo);
-    static vector<string> *loadShaderSourceFile(string fileName);
+    static GLchar *loadShaderSourceFile(string fileName, GLint *length);
 
     Scene *theScene;
 };
