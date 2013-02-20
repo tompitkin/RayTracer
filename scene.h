@@ -27,6 +27,10 @@ public:
     Lights *lights;
     bool updateLight;
     vector<bool> updateLights;
+    float clearColorR = 0.0f;
+    float clearColorG = 0.0f;
+    float clearColorB = 0.0f;
+    float clearColorA = 1.0f;
     vector<ShaderProgram*> shaders;
     ShaderProgram *shaderProg;
     bool drawAxis = true;
@@ -35,6 +39,7 @@ public:
     string fragShaderName = "";
     string defaultVertShader = "multi.vs";
     string defaultFragShader = "multi.vs";
+    bool updateShaders = true;
     ShaderUtils shUtil = ShaderUtils(this);
 
 protected:

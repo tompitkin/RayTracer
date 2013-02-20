@@ -111,4 +111,22 @@ void Scene::resizeGL(int x, int h)
 
 void Scene::paintGL()
 {
+    glClearColor(clearColorR, clearColorG, clearColorB, clearColorA);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    if (updateLight)
+    {
+        for (int i = 0; i < updateLights.size(); i++)
+        {
+            if (updateLights[i])
+            {
+                lights->updateLight(i);
+                updateLights[i] = false;
+            }
+        }
+        updateLight = false;
+    }
+
+    if (drawAxis)
+        axes->draw();
 }

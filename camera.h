@@ -4,6 +4,7 @@
 #include "MatrixManipulation/matrixops.h"
 #include "MatrixManipulation/double3d.h"
 #include "Uniforms/matrix4uniform.h"
+#include "shaderprogram.h"
 
 class Camera
 {
@@ -11,6 +12,7 @@ public:
     Camera();
     virtual ~Camera();
 
+    void updateCamera(ShaderProgram *shaderProg);
     double *makeViewingTransform();
     double *makePersepctiveTransform();
 

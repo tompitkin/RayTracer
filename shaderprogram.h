@@ -27,7 +27,7 @@ public:
 
     void addUniform(Uniform *toAdd);
 
-    int progID;
+    GLuint progID;
     vector<Uniform*> uniformList;
     string baseName;
     Shader *vertexShader;

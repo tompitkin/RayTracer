@@ -22,6 +22,10 @@ Camera::~Camera()
     delete invCamUniform;
 }
 
+void Camera::updateCamera(ShaderProgram *shaderProg)
+{
+}
+
 double *Camera::makeViewingTransform()
 {
     Double3D viewPlaneNormal = center.minus(eye);
