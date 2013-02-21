@@ -98,6 +98,24 @@ void Scene::setupUniforms(ShaderProgram *theShader)
     }
 }
 
+void Scene::adjustWindowAspect()
+{
+    double viewportAspect = camera->aspectRatio;
+    double winWidth = camera->getWindowWidth();
+    double winHeight = camera->getWindowHeight();
+    double winLeft = camera->windowLeft;
+    double winRight = camera->windowRight;
+    double winTop = camera->windowTop;
+    double winBottom = camera->windowBottom;
+    double newWinWidth = viewportAspect * winHeight;
+    double widthChange = newWinWidth - winWidth;
+    widthChange /= 2.0;
+    winLeft -= widthChange;
+    winRight += widthChange;
+    camera->setFrustum(winLeft, winRight, winBottom, winTop, camera->near, camera->far);
+    camera->frustumChanged = true;
+}
+
 void Scene::initializeGL()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -107,6 +125,10 @@ void Scene::initializeGL()
 
 void Scene::resizeGL(int x, int h)
 {
+    fprintf(stdout, "ResizeGL: width: %d height: %d\n", x, h);
+    glViewport(0, 0, x, h);
+    camera->setViewport(0.0, x, h, 0.0);
+    adjustWindowAspect();
 }
 
 void Scene::paintGL()
@@ -116,7 +138,7 @@ void Scene::paintGL()
 
     if (updateLight)
     {
-        for (int i = 0; i < updateLights.size(); i++)
+        for (int i = 0; i < (int)updateLights.size(); i++)
         {
             if (updateLights[i])
             {
@@ -126,6 +148,8 @@ void Scene::paintGL()
         }
         updateLight = false;
     }
+
+    camera->updateCamera(shaderProg);
 
     if (drawAxis)
         axes->draw();

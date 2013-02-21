@@ -20,6 +20,7 @@ public:
     virtual ~Scene();
 
     void setupUniforms(ShaderProgram *theShader);
+    void adjustWindowAspect();
 
     vector<PMesh> *objects;
     PMesh *curObject;

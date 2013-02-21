@@ -80,7 +80,7 @@ void Axes::Axis::draw(Axes *axes)
     glUseProgram(axes->axesShaderProg->progID);
     glBindVertexArray(idVAO);
     glBindBuffer(GL_ARRAY_BUFFER, idBuffers);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, 6*sizeof(float), vertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
