@@ -37,7 +37,7 @@ Axes::Axis::Axis(char which, float height)
 {
     whichone = which;
     howbig = height;
-    color = new float[4];
+    color = new float[4]{0.0f, 0.0f, 0.0f, 1.0f};
     colorUniform = new Vec4Uniform(nullptr, "axisColor");
     vertices = new float[6];
     vertices[0]=0.0f; vertices[1]=0.0f; vertices[2]=0.0f;
@@ -46,7 +46,7 @@ Axes::Axis::Axis(char which, float height)
         vertices[3] = howbig*1.0f;
         vertices[4] = 0.0f;
         vertices[5] = 0.0f;
-        color[0]=1.0f; color[1]=0.0f; color[2]=0.0f; color[2]=1.0f;
+        color[0]=1.0f; color[1]=0.0f; color[2]=0.0f; color[3]=1.0f;
     }
     else if (whichone == 'Y')
     {
@@ -88,7 +88,7 @@ void Axes::Axis::draw(Axes *axes)
 
     if (colorUniform->theBuffer == nullptr)
         colorUniform->theBuffer = new GLfloat[4];
-    memcpy(colorUniform->theBuffer, color, sizeof(color));
+    copy(color, color+4, colorUniform->theBuffer);
     colorUniform->update(axes->axesShaderProg->progID);
 
     axes->theScene->camera->viewMatUniform->update(axes->axesShaderProg->progID);

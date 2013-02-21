@@ -20,7 +20,7 @@ void Matrix4Uniform::update(int shaderProgID)
         if (matLocation != -1)
         {
             if (theBuffer != nullptr)
-                glUniformMatrix4fv(matLocation, 1, false, theBuffer);
+                glUniformMatrix4fv(matLocation, 1, GL_FALSE, theBuffer);
             else
                 fprintf(stderr, "Matrix4Uniform.update: theBuffer for %s is null\n", shaderVarName.c_str());
         }

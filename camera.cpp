@@ -22,10 +22,11 @@ Camera::~Camera()
     delete invCamUniform;
 }
 
-void Camera::updateCamera(ShaderProgram *shaderProg)
+void Camera::updateCamera()
 {
     if (frustumChanged || perspectiveChanged)
     {
+        delete[] projMat;
         projMat = makePersepctiveTransform();
         if (projMatUniform->theBuffer == nullptr)
         {
@@ -40,6 +41,7 @@ void Camera::updateCamera(ShaderProgram *shaderProg)
     }
     if (cameraMoved)
     {
+        delete []viewMat;
         viewMat = makeViewingTransform();
         if (viewMatUniform->theBuffer == nullptr)
         {
@@ -87,13 +89,6 @@ void Camera::frustumToPerspective()
         difY = windowTop + abs(windowBottom);
     else
         difY = windowTop - windowBottom;
-    double difX = 0.0;
-    if (windowRight < 0 && windowLeft < 0)
-        difX = abs(windowLeft) - abs(windowRight);
-    else if (windowRight > 0 && windowLeft < 0)
-        difX = windowRight + abs(windowLeft);
-    else
-        difX = windowRight - windowLeft;
     fov = atan((difY/2)/near) * 180 / M_PI;
     fov = 2 * fov;
 }

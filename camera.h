@@ -13,7 +13,7 @@ public:
     Camera();
     virtual ~Camera();
 
-    void updateCamera(ShaderProgram *shaderProg);
+    void updateCamera();
     void setViewport(double left, double right, double top, double bottom);
     void setFrustum(double left, double right, double bottom, double top, double nr, double fr);
     void frustumToPerspective();

@@ -1,6 +1,8 @@
 #ifndef MATRIXOPS_H
 #define MATRIXOPS_H
 
+#include <cstring>
+
 class MatrixOps
 {
 public:

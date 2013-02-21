@@ -149,7 +149,7 @@ void Scene::paintGL()
         updateLight = false;
     }
 
-    camera->updateCamera(shaderProg);
+    camera->updateCamera();
 
     if (drawAxis)
         axes->draw();
