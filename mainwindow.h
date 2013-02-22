@@ -15,6 +15,9 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     
+private slots:
+    void on_DrawAxis_toggled(bool checked);
+
 private:
     Ui::MainWindow *ui;
 };

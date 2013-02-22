@@ -12,3 +12,9 @@ MainWindow::~MainWindow()
 {
     delete ui;
 }
+
+void MainWindow::on_DrawAxis_toggled(bool checked)
+{
+    ui->Canvas->drawAxis = checked;
+    ui->Canvas->repaint();
+}
