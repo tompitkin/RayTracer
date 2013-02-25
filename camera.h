@@ -25,9 +25,9 @@ public:
     static const int FRUSTUM_MODE = 0;
     static const int PERSPECTIVE_MODE = 1;
     static const int ORTHOGRAPHIC_MODE = 2;
-    Double3D eye = Double3D(0.0, 0.0, 10.0);
-    Double3D center = Double3D(0.0, 0.0, 0.0);
-    Double3D up = Double3D(0.0, 1.0, 0.0);
+    Double3D *eye = new Double3D(0.0, 0.0, 10.0);
+    Double3D *center = new Double3D(0.0, 0.0, 0.0);
+    Double3D *up = new Double3D(0.0, 1.0, 0.0);
     double near = 9.0;
     double far = 10000.0;
     double fov;

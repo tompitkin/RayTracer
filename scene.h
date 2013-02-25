@@ -11,6 +11,8 @@
 #include "shaderprogram.h"
 #include "shaderutils.h"
 #include "axes.h"
+#include "Loaders/objecttypes.h"
+#include "Loaders/objloaderbuffer.h"
 
 class Scene : public QGLWidget
 {
@@ -21,36 +23,34 @@ public:
 
     void setupUniforms(ShaderProgram *theShader);
     void adjustWindowAspect();
+    void addObject(QString fileName, int fileType);
 
-    vector<PMesh> *objects;
     PMesh *curObject;
     Camera *camera;
     Lights *lights;
-    bool updateLight;
-    vector<bool> updateLights;
-    float clearColorR = 0.0f;
-    float clearColorG = 0.0f;
-    float clearColorB = 0.0f;
-    float clearColorA = 1.0f;
-    vector<ShaderProgram*> shaders;
-    ShaderProgram *shaderProg;
-    bool drawAxis = true;
     Axes *axes = nullptr;
+    ShaderProgram *shaderProg;
+    ShaderUtils shUtil = ShaderUtils(this);
+    vector<PMesh*> objects;
+    vector<ShaderProgram*> shaders;
+    vector<bool> updateLights;
     string vertShaderName = "";
     string fragShaderName = "";
     string defaultVertShader = "multi.vs";
     string defaultFragShader = "multi.vs";
+    bool drawAxis = true;
+    bool updateLight;
     bool updateShaders = true;
-    ShaderUtils shUtil = ShaderUtils(this);
+    float clearColorR = 0.0f;
+    float clearColorG = 0.0f;
+    float clearColorB = 0.0f;
+    float clearColorA = 1.0f;
+    int numLoaded = 0;
 
 protected:
     void initializeGL();
     void resizeGL(int x, int h);
     void paintGL();
-    
-signals:
-    
-public slots:
     
 };
 

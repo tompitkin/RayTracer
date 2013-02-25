@@ -6,6 +6,8 @@
 
 QT       += core gui opengl
 
+QMAKE_CXXFLAGS += -std=c++11
+
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = RayTracer
@@ -16,7 +18,7 @@ SOURCES += main.cpp\
         mainwindow.cpp \
     scene.cpp \
     pmesh.cpp \
-    objloaderbuffer.cpp \
+    Loaders/objloaderbuffer.cpp \
     camera.cpp \
     MatrixManipulation/matrixops.cpp \
     MatrixManipulation/double3d.cpp \
@@ -35,7 +37,8 @@ SOURCES += main.cpp\
 HEADERS  += mainwindow.h \
     scene.h \
     pmesh.h \
-    objloaderbuffer.h \
+    Loaders/objecttypes.h \
+    Loaders/objloaderbuffer.h \
     camera.h \
     MatrixManipulation/matrixops.h \
     MatrixManipulation/double3d.h \
@@ -58,4 +61,15 @@ FORMS    += mainwindow.ui
 
 LIBS += -lGLEW -lGLU
 
-QMAKE_CXXFLAGS += -std=c++11
+HEADERS += \
+    Utilities/doublecolor.h
+
+SOURCES += \
+    Utilities/doublecolor.cpp
+
+HEADERS += \
+    sphere.h
+
+SOURCES += \
+    sphere.cpp
+

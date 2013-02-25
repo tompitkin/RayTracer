@@ -18,6 +18,8 @@ public:
 private slots:
     void on_DrawAxis_toggled(bool checked);
 
+    void on_LoadObject_clicked();
+
 private:
     Ui::MainWindow *ui;
 };

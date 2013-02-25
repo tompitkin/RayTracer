@@ -25,7 +25,6 @@ Scene::Scene(QWidget *parent) :
     }
 
     camera = new Camera();
-    objects = new vector<PMesh>;
     curObject = NULL;
     lights = new Lights(this);
     updateLight = true;
@@ -56,9 +55,10 @@ Scene::Scene(QWidget *parent) :
 Scene::~Scene()
 {
     delete camera;
-    delete objects;
     delete lights;
     delete shaderProg;
+    for (int x = 0; x < (int)objects.size(); x++)
+        objects[x] = nullptr;
     for (int x = 0; x < (int)shaders.size(); x++)
         shaders[x] = nullptr;
     delete axes;
@@ -116,6 +116,29 @@ void Scene::adjustWindowAspect()
     camera->frustumChanged = true;
 }
 
+void Scene::addObject(QString fileName, int fileType)
+{
+    PMesh *newObj = nullptr;
+    switch(fileType)
+    {
+    case ObjectTypes::TYPE_OBJ:
+        newObj = new ObjLoaderBuffer(this);
+        newObj->objNumber = ++numLoaded;
+        break;
+    default:
+        fprintf(stderr, "Scene.addObject : undefined object type %d\n", fileType);
+    }
+
+    if (newObj->load(fileName))
+    {
+        this->curObject = newObj;
+        this->objects.push_back(newObj);
+    }
+    else
+        fprintf(stderr, "Error loading Object\n");
+    repaint();
+}
+
 void Scene::initializeGL()
 {
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
@@ -136,6 +159,12 @@ void Scene::paintGL()
     glClearColor(clearColorR, clearColorG, clearColorB, clearColorA);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    if (updateShaders)
+    {
+        shUtil.setupShaders(shaderProg);
+        updateShaders = false;
+    }
+
     if (updateLight)
     {
         for (int i = 0; i < (int)updateLights.size(); i++)
@@ -153,4 +182,13 @@ void Scene::paintGL()
 
     if (drawAxis)
         axes->draw();
+
+    glUseProgram(shaderProg->progID);
+
+    PMesh *curObj = nullptr;
+    for (int i = 0; i < (int)objects.size(); i++)
+    {
+        curObj = objects.at(i);
+        curObj->updateUniforms();
+    }
 }
