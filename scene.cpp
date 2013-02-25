@@ -25,7 +25,8 @@ Scene::Scene(QWidget *parent) :
     }
 
     camera = new Camera();
-    curObject = NULL;
+    objects = new vector<PMesh*>();
+    curObject = nullptr;
     lights = new Lights(this);
     updateLight = true;
     updateLights = vector<bool>(8);
@@ -35,6 +36,8 @@ Scene::Scene(QWidget *parent) :
         updateLights[i] = false;
     }
     updateLight = false;
+
+    shaders = new vector<ShaderProgram*>();
 
     shaderProg = new ShaderProgram();
     if (vertShaderName.compare(""))
@@ -48,7 +51,7 @@ Scene::Scene(QWidget *parent) :
 
     setupUniforms(shaderProg);
 
-    shaders.push_back(shaderProg);
+    shaders->push_back(shaderProg);
     drawAxis = true;
 }
 
@@ -57,10 +60,10 @@ Scene::~Scene()
     delete camera;
     delete lights;
     delete shaderProg;
-    for (int x = 0; x < (int)objects.size(); x++)
-        objects[x] = nullptr;
-    for (int x = 0; x < (int)shaders.size(); x++)
-        shaders[x] = nullptr;
+    for (int x = 0; x < (int)objects->size(); x++)
+        objects->at(x) = nullptr;
+    for (int x = 0; x < (int)shaders->size(); x++)
+        shaders->at(x) = nullptr;
     delete axes;
 }
 
@@ -132,7 +135,7 @@ void Scene::addObject(QString fileName, int fileType)
     if (newObj->load(fileName))
     {
         this->curObject = newObj;
-        this->objects.push_back(newObj);
+        this->objects->push_back(newObj);
     }
     else
         fprintf(stderr, "Error loading Object\n");
@@ -186,9 +189,9 @@ void Scene::paintGL()
     glUseProgram(shaderProg->progID);
 
     PMesh *curObj = nullptr;
-    for (int i = 0; i < (int)objects.size(); i++)
+    for (int i = 0; i < (int)objects->size(); i++)
     {
-        curObj = objects.at(i);
+        curObj = objects->at(i);
         curObj->updateUniforms();
     }
 }

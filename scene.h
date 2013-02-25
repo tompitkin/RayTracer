@@ -31,8 +31,8 @@ public:
     Axes *axes = nullptr;
     ShaderProgram *shaderProg;
     ShaderUtils shUtil = ShaderUtils(this);
-    vector<PMesh*> objects;
-    vector<ShaderProgram*> shaders;
+    vector<PMesh*> *objects;
+    vector<ShaderProgram*> *shaders;
     vector<bool> updateLights;
     string vertShaderName = "";
     string fragShaderName = "";
