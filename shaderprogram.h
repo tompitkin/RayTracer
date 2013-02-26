@@ -14,6 +14,7 @@ public:
     {
     public:
         Shader(string name, bool compiled, bool attached, int id, int type, ShaderProgram *prog);
+        virtual ~Shader();
 
         int type;
         string shaderName;

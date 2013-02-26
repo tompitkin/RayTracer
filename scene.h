@@ -31,13 +31,13 @@ public:
     Axes *axes = nullptr;
     ShaderProgram *shaderProg;
     ShaderUtils shUtil = ShaderUtils(this);
-    vector<PMesh*> *objects;
-    vector<ShaderProgram*> *shaders;
+    vector<PMesh*> objects;
+    vector<ShaderProgram> shaders;
     vector<bool> updateLights;
     string vertShaderName = "";
     string fragShaderName = "";
-    string defaultVertShader = "multi.vs";
-    string defaultFragShader = "multi.vs";
+    string defaultVertShader = "multi.vert";
+    string defaultFragShader = "multi.frag";
     bool drawAxis = true;
     bool updateLight;
     bool updateShaders = true;

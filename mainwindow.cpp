@@ -27,9 +27,9 @@ void MainWindow::on_LoadObject_clicked()
     if (!fileName.isEmpty())
     {
         ui->Canvas->addObject(fileName, ObjectTypes::TYPE_OBJ);
-        if (!ui->Canvas->objects->empty())
+        if (!ui->Canvas->objects.empty())
         {
-            QString itemName((*ui->Canvas->objects->back()).objName);
+            QString itemName((*ui->Canvas->objects.back()).objName);
             ui->CurrentObject->addItem(itemName);
             ui->CurrentObject->repaint();
         }

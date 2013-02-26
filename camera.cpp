@@ -15,11 +15,14 @@ Camera::Camera()
 
 Camera::~Camera()
 {
-    delete []viewMat;
+    /*delete []viewMat;
     delete []projMat;
     delete viewMatUniform;
     delete projMatUniform;
     delete invCamUniform;
+    delete eye;
+    delete center;
+    delete up;*/
 }
 
 void Camera::updateCamera()
@@ -119,6 +122,8 @@ double *Camera::makeViewingTransform()
     trans[14] = -eye->z;
     double *viewTransform = MatrixOps::multMat(rotations, trans);
 
+    delete viewPlaneNormal;
+    delete xaxis;
     delete []rotations;
     delete []trans;
 

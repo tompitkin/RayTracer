@@ -25,7 +25,6 @@ Scene::Scene(QWidget *parent) :
     }
 
     camera = new Camera();
-    objects = new vector<PMesh*>();
     curObject = nullptr;
     lights = new Lights(this);
     updateLight = true;
@@ -37,34 +36,37 @@ Scene::Scene(QWidget *parent) :
     }
     updateLight = false;
 
-    shaders = new vector<ShaderProgram*>();
-
     shaderProg = new ShaderProgram();
-    if (vertShaderName.compare(""))
+    if (vertShaderName.empty())
         shaderProg->vertexShader = new ShaderProgram::Shader(defaultVertShader,false, false, -1, GL_VERTEX_SHADER, shaderProg);
     else
         shaderProg->vertexShader = new ShaderProgram::Shader(vertShaderName, false, false, -1, GL_VERTEX_SHADER, shaderProg);
-    if (fragShaderName.compare(""))
+    if (fragShaderName.empty())
         shaderProg->fragmentShader = new ShaderProgram::Shader(defaultFragShader, false, false, -1, GL_FRAGMENT_SHADER, shaderProg);
     else
         shaderProg->fragmentShader = new ShaderProgram::Shader(fragShaderName, false, false, -1, GL_FRAGMENT_SHADER, shaderProg);
 
     setupUniforms(shaderProg);
 
-    shaders->push_back(shaderProg);
+    shaders.push_back(*shaderProg);
     drawAxis = true;
 }
 
 Scene::~Scene()
 {
-    delete camera;
-    delete lights;
     delete shaderProg;
-    for (int x = 0; x < (int)objects->size(); x++)
-        objects->at(x) = nullptr;
-    for (int x = 0; x < (int)shaders->size(); x++)
-        shaders->at(x) = nullptr;
+    shaderProg = nullptr;
+    for (int i = 0; i < (int)objects.size(); i++)
+    {
+        delete objects[i];
+        objects[i] = nullptr;
+    }
+    delete camera;
+    camera = nullptr;
+    delete lights;
+    lights = nullptr;
     delete axes;
+    axes = nullptr;
 }
 
 void Scene::setupUniforms(ShaderProgram *theShader)
@@ -135,7 +137,7 @@ void Scene::addObject(QString fileName, int fileType)
     if (newObj->load(fileName))
     {
         this->curObject = newObj;
-        this->objects->push_back(newObj);
+        this->objects.push_back(newObj);
     }
     else
         fprintf(stderr, "Error loading Object\n");
@@ -189,9 +191,10 @@ void Scene::paintGL()
     glUseProgram(shaderProg->progID);
 
     PMesh *curObj = nullptr;
-    for (int i = 0; i < (int)objects->size(); i++)
+    for (int i = 0; i < (int)objects.size(); i++)
     {
-        curObj = objects->at(i);
+        curObj = objects.at(i);
         curObj->updateUniforms();
+        curObj->draw(camera);
     }
 }

@@ -19,6 +19,17 @@ PMesh::PMesh(Scene *aScene)
     active = true;
 
     center = new Double3D();
+    firstDraw = true;
+
+    modelMatUniform = new Matrix4Uniform(nullptr, "modelMat");
+
+    useAmbTexUniform = new IntUniform(0, "materialSettings.ambTex");
+    useDiffTexUniform = new IntUniform(0, "materialSettings.diffTex");
+    useSpecTexUniform = new IntUniform(0, "materialSettings.specTex");
+}
+
+PMesh::~PMesh()
+{
 }
 
 Sphere *PMesh::calcBoundingSphere()
@@ -137,6 +148,36 @@ void PMesh::updateUniforms()
         if (thisOne->needsUpdate)
             thisOne->update(theShader->progID);
         thisOne->needsUpdate=false;
+    }
+}
+
+void PMesh::draw(Camera *camera)
+{
+    SurfCell *curSurf;
+    fprintf(stdout, "Drawing %s\n", qPrintable(this->objName));
+
+    if (firstDraw)
+    {
+        bufferIDs = new GLuint[numSurf*3];
+        VAOIDs = new GLuint[numSurf];
+        glGenBuffers(numSurf*3, bufferIDs);
+        glGenVertexArrays(numSurf, VAOIDs);
+        useAmbTexUniform->update(theShader->progID);
+        useDiffTexUniform->update(theShader->progID);
+        useSpecTexUniform->update(theShader->progID);
+    }
+    if (active)
+    {
+        int previousMat = -1;
+        if (modelMatUniform->theBuffer == nullptr)
+            modelMatUniform->theBuffer = new GLfloat[16];
+        copy(modelMat, modelMat+16, modelMatUniform->theBuffer);
+        GL::checkGLErrors(" updateMatrix4Uniform(before): ");
+        modelMatUniform->update(theShader->progID);
+        double *modelViewMat = MatrixOps::newIdentity();
+        modelViewMat = MatrixOps::multMat(modelViewMat, camera->viewMat);
+        modelViewMat = MatrixOps::multMat(modelViewMat, modelMat);
+        //MatrixOps::inverseTranspose(modelViewMat);
     }
 }
 

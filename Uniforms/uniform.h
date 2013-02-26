@@ -9,6 +9,7 @@ class Uniform
 {
 public:
     Uniform();
+    virtual ~Uniform();
 
     virtual void update(int shaderProgID) = 0;
 

@@ -3,3 +3,7 @@
 Uniform::Uniform()
 {
 }
+
+Uniform::~Uniform()
+{
+}

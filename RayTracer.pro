@@ -73,3 +73,9 @@ HEADERS += \
 SOURCES += \
     sphere.cpp
 
+OTHER_FILES += \
+    Shaders/multi.frag
+
+OTHER_FILES += \
+    Shaders/multi.vert
+

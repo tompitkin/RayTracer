@@ -11,7 +11,7 @@ Lights::Lights(Scene *parent)
 
 Lights::~Lights()
 {
-    theScene = nullptr;
+    /*theScene = nullptr;
     for (int x = 0; x < (int)lightAmb.size(); x++)
         delete lightAmb[x];
     for (int x = 0; x < (int)lightDiff.size(); x++)
@@ -27,7 +27,7 @@ Lights::~Lights()
     for (int x = 0; x < (int)spotCutoff.size(); x++)
         delete spotCutoff[x];
     for (int x = 0; x < (int)spotDirection.size(); x++)
-        delete spotDirection[x];
+        delete spotDirection[x];*/
 }
 
 Lights::Light::Light()

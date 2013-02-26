@@ -9,6 +9,9 @@
 #include "Utilities/doublecolor.h"
 #include "sphere.h"
 #include "shaderprogram.h"
+#include "camera.h"
+#include "Uniforms/intuniform.h"
+#include "Uniforms/matrix4uniform.h"
 
 using namespace std;
 
@@ -116,12 +119,14 @@ public:
     };
 
     PMesh(Scene *aScene);
+    virtual ~PMesh();
 
     virtual bool load(QString filePath) = 0;
     Sphere *calcBoundingSphere();
     void calcPolyNorms();
     void calcVertNorms();
     void updateUniforms();
+    void draw(Camera *camera);
 
     Scene *theScene;
     QFile *file;
@@ -135,8 +140,15 @@ public:
     Double3D *center;
     Sphere *boundingSphere;
     ShaderProgram *theShader;
+    GLuint *bufferIDs;
+    GLuint *VAOIDs;
+    IntUniform *useAmbTexUniform;
+    IntUniform *useDiffTexUniform;
+    IntUniform *useSpecTexUniform;
+    Matrix4Uniform *modelMatUniform;
     double *modelMat;
     bool active;
+    bool firstDraw;
     int objNumber;
     int fileType;
     int numVerts;
