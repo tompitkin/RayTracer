@@ -28,19 +28,21 @@ public:
     public:
         VertCell();
         VertCell(const VertCell *from);
+        virtual ~VertCell();
 
-        PolyListCell *polys;
-        Double3D *worldPos;
-        Double3D *viewPos;
-        Double3D *screenPos;
+        shared_ptr<PolyListCell> polys;
+        Double3D worldPos;
+        Double3D viewPos;
+        Double3D screenPos;
     };
 
     class VertListCell
     {
     public:
         VertListCell();
+        virtual ~VertListCell();
 
-        VertListCell *next;
+        shared_ptr<VertListCell> next;
         int vert;
         int norm;
         int tex;
@@ -52,14 +54,15 @@ public:
     {
     public:
         PolyCell();
+        virtual ~PolyCell();
 
-        VertListCell *vert;
+        shared_ptr<VertListCell> vert;
         shared_ptr<SurfCell> parentSurf;
-        PolyCell *next;
-        Double3D *normal;
-        Double3D *tangent;
-        Double3D *biTangent;
-        Double3D *viewNorm;
+        shared_ptr<PolyCell> next;
+        Double3D normal;
+        Double3D tangent;
+        Double3D biTangent;
+        Double3D viewNorm;
         bool culled;
         int numVerts;
     };
@@ -68,17 +71,19 @@ public:
     {
     public:
         PolyListCell();
+        virtual ~PolyListCell();
 
-        PolyCell *poly;
-        PolyListCell *next;
+        shared_ptr<PolyCell> poly;
+        shared_ptr<PolyListCell> next;
     };
 
     class SurfCell
     {
     public:
         SurfCell(QString name);
+        virtual ~SurfCell();
 
-        PolyCell *polyHead;
+        shared_ptr<PolyCell> polyHead;
         shared_ptr<SurfCell> next;
         QString name;
         GLfloat *vertexBuffer = nullptr;
@@ -102,14 +107,14 @@ public:
 
         QString materialName;
         QString mapD;
-        DoubleColor *ka;
-        DoubleColor *kd;
-        DoubleColor *ks;
-        DoubleColor *emmColor;
-        DoubleColor *reflectivity;
-        DoubleColor *refractivity;
-        DoubleColor *transmissionFilter;
-        DoubleColor *lineColor;
+        DoubleColor ka;
+        DoubleColor kd;
+        DoubleColor ks;
+        DoubleColor emmColor;
+        DoubleColor reflectivity;
+        DoubleColor refractivity;
+        DoubleColor transmissionFilter;
+        DoubleColor lineColor;
         bool doubleSided;
         double refractiveIndex;
         double shiny;

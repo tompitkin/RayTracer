@@ -25,10 +25,16 @@ PMesh::PMesh(Scene *aScene)
 
 PMesh::~PMesh()
 {
+    theScene = nullptr;
     delete boundingSphere;
+    delete modelMatUniform;
     delete useAmbTexUniform;
     delete useDiffTexUniform;
     delete useSpecTexUniform;
+    delete file;
+    delete []bufferIDs;
+    delete []VAOIDs;
+    delete []modelMat;
 }
 
 Sphere *PMesh::calcBoundingSphere()
@@ -37,7 +43,7 @@ Sphere *PMesh::calcBoundingSphere()
     double dist;
     for (int i = 0; i < numVerts; i++)
     {
-        dist = vertArray.at(i)->worldPos->distanceTo(center);
+        dist = vertArray.at(i)->worldPos.distanceTo(center);
         if (dist > greatest)
             greatest = dist;
     }
@@ -50,8 +56,8 @@ void PMesh::calcPolyNorms()
 {
     Double3D *vector1, *vector2, *cross;
     shared_ptr<SurfCell> curSurf = surfHead;
-    PolyCell *curPoly;
-    VertListCell *curVert, *temp;
+    shared_ptr<PolyCell> curPoly;
+    shared_ptr<VertListCell> curVert, temp;
 
     while (curSurf != nullptr)
     {
@@ -91,16 +97,16 @@ void PMesh::calcPolyNorms()
 void PMesh::calcVertNorms()
 {
     Double3D norm;
-    PolyListCell *curPolyLC;
+    shared_ptr<PolyListCell> curPolyLC;
     vertNormArray.resize(this->numVerts);
     this->numNorms = this->numVerts;
     shared_ptr<SurfCell> curSurf = surfHead;
     while (curSurf != nullptr)
     {
-        PolyCell *curPoly = curSurf->polyHead;
+        shared_ptr<PolyCell> curPoly = curSurf->polyHead;
         while (curPoly != nullptr)
         {
-            VertListCell *curVertLC = curPoly->vert;
+            shared_ptr<VertListCell> curVertLC = curPoly->vert;
             while (curVertLC != nullptr)
             {
                 curPolyLC = vertArray.at(curVertLC->vert)->polys;
@@ -181,15 +187,17 @@ void PMesh::draw(Camera *camera)
 
 PMesh::VertCell::VertCell()
 {
-    worldPos = new Double3D();
-    viewPos = new Double3D();
-    screenPos = new Double3D();
     polys = nullptr;
 }
 
 PMesh::VertCell::VertCell(const VertCell *from)
 {
-    worldPos = new Double3D(from->worldPos);
+    worldPos = Double3D(from->worldPos);
+}
+
+PMesh::VertCell::~VertCell()
+{
+    polys.reset();
 }
 
 
@@ -197,10 +205,14 @@ PMesh::PolyCell::PolyCell()
 {
     numVerts = 0;
     vert = nullptr;
-    normal = new Double3D();
     culled = false;
-    parentSurf = nullptr;
     next = nullptr;
+}
+
+PMesh::PolyCell::~PolyCell()
+{
+    vert.reset();
+    next.reset();
 }
 
 
@@ -214,11 +226,22 @@ PMesh::VertListCell::VertListCell()
     next = nullptr;
 }
 
+PMesh::VertListCell::~VertListCell()
+{
+    next.reset();
+}
+
 
 PMesh::PolyListCell::PolyListCell()
 {
     poly = nullptr;
     next = nullptr;
+}
+
+PMesh::PolyListCell::~PolyListCell()
+{
+    poly.reset();
+    next.reset();
 }
 
 
@@ -228,28 +251,37 @@ PMesh::SurfCell::SurfCell(QString name)
     numPoly = 0;
     polyHead = nullptr;
     material = 0;
-    next = nullptr;
     numVerts = 0;
+}
+
+PMesh::SurfCell::~SurfCell()
+{
+    polyHead.reset();
+    delete vertexBuffer;
+    delete normalBuffer;
+    delete texCoordBuffer;
+    delete tangentBuffer;
+    delete bitangentBuffer;
 }
 
 
 PMesh::MaterialCell::MaterialCell()
 {
     materialName = "default";
-    ka = new DoubleColor(0.2, 0.2, 0.2, 1.0);
-    kd = new DoubleColor(0.8, 0.0, 0.0, 1.0);
-    ks = new DoubleColor(1.0, 1.0, 1.0, 1.0);
+    ka = DoubleColor(0.2, 0.2, 0.2, 1.0);
+    kd = DoubleColor(0.8, 0.0, 0.0, 1.0);
+    ks = DoubleColor(1.0, 1.0, 1.0, 1.0);
     mapKa = -1;
     mapKd = -1;
     mapKs = -1;
     mapD = "";
-    emmColor = new DoubleColor(0.0, 0.0, 0.0, 1.0);
+    emmColor = DoubleColor(0.0, 0.0, 0.0, 1.0);
     shiny = 90.0;
-    reflectivity = new DoubleColor(0.3, 0.0, 0.0, 1.0);
-    refractivity = new DoubleColor(0.3, 0.0, 0.0, 1.0);
+    reflectivity = DoubleColor(0.3, 0.0, 0.0, 1.0);
+    refractivity = DoubleColor(0.3, 0.0, 0.0, 1.0);
     refractiveIndex = 1.5;
-    transmissionFilter = new DoubleColor(1.0, 1.0, 1.0, 1.0);
-    lineColor = new DoubleColor(1.0, 1.0, 1.0, 1.0);
+    transmissionFilter = DoubleColor(1.0, 1.0, 1.0, 1.0);
+    lineColor = DoubleColor(1.0, 1.0, 1.0, 1.0);
     doubleSided = false;
 }
 

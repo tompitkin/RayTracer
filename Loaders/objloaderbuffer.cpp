@@ -60,12 +60,12 @@ void ObjLoaderBuffer::readVerts()
             {
                 QStringList list = line.split(QRegularExpression("\\s+"), QString::SkipEmptyParts);
                 list.removeAt(0);
-                vertArray.at(vertNo)->worldPos->x = list[0].toDouble();
-                xSum += vertArray.at(vertNo)->worldPos->x;
-                vertArray.at(vertNo)->worldPos->y = list[1].toDouble();
-                ySum += vertArray.at(vertNo)->worldPos->y;
-                vertArray.at(vertNo)->worldPos->z = list[2].toDouble();
-                zSum += vertArray.at(vertNo)->worldPos->z;
+                vertArray.at(vertNo)->worldPos.x = list[0].toDouble();
+                xSum += vertArray.at(vertNo)->worldPos.x;
+                vertArray.at(vertNo)->worldPos.y = list[1].toDouble();
+                ySum += vertArray.at(vertNo)->worldPos.y;
+                vertArray.at(vertNo)->worldPos.z = list[2].toDouble();
+                zSum += vertArray.at(vertNo)->worldPos.z;
                 vertNo++;
             }
         }
@@ -203,13 +203,13 @@ void ObjLoaderBuffer::readSurfaces()
 void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, bool inSmooth)
 {
     int curIndex = 0;
-    PolyCell *curPoly;
-    PolyListCell *curVertPoly;
-    VertListCell *curVert;
+    shared_ptr<PolyCell> curPoly;
+    shared_ptr<PolyListCell> curVertPoly;
+    shared_ptr<VertListCell> curVert;
     QStringList tokens = line.split(QRegularExpression("\\s+"), QString::SkipEmptyParts);
     if (curSurf->polyHead == nullptr)
     {
-        curSurf->polyHead = new PolyCell();
+        curSurf->polyHead = shared_ptr<PolyCell>(new PolyCell());
         curPoly = curSurf->polyHead;
     }
     else
@@ -217,7 +217,7 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
         curPoly = curSurf->polyHead;
         while (curPoly->next != nullptr)
             curPoly = curPoly->next;
-        curPoly->next = new PolyCell();
+        curPoly->next = shared_ptr<PolyCell>(new PolyCell());
         curPoly = curPoly->next;
     }
     curPoly->numVerts = 0;
@@ -229,7 +229,7 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
         curIndex = vertTokens[0].toInt();
         if (curPoly->vert == nullptr)
         {
-            curPoly->vert = new VertListCell();
+            curPoly->vert = shared_ptr<VertListCell>(new VertListCell());
             curVert = curPoly->vert;
         }
         else
@@ -237,7 +237,7 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
             curVert = curPoly->vert;
             while (curVert->next != nullptr)
                 curVert = curVert->next;
-            curVert->next = new VertListCell();
+            curVert->next = shared_ptr<VertListCell>(new VertListCell());
             curVert = curVert->next;
         }
         if (!inSmooth)
@@ -253,7 +253,7 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
         }
         else if(vertUsedArray.at(curIndex - 1) != nullptr && vertUsedArray.at(curIndex-1)!=curSurf)
         {
-            int copyIndex = findCopyInSurf(curSurf, vertArray.at(curIndex-1)->worldPos);
+            int copyIndex = findCopyInSurf(curSurf, &vertArray.at(curIndex-1)->worldPos);
             if (copyIndex == -1)
             {
                 vertArray.insert(vertArray.begin()+numVerts, shared_ptr<VertCell>(new VertCell(&*vertArray.at(curIndex-1))));
@@ -274,7 +274,7 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
         {
             if (vertArray.at(curIndex-1)->polys == nullptr)
             {
-                vertArray.at(curIndex-1)->polys = new PolyListCell();
+                vertArray.at(curIndex-1)->polys = shared_ptr<PolyListCell>(new PolyListCell());
                 curVertPoly = vertArray.at(curIndex-1)->polys;
             }
             else
@@ -282,7 +282,7 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
                 curVertPoly = vertArray.at(curIndex-1)->polys;
                 while (curVertPoly->next != nullptr)
                     curVertPoly = curVertPoly->next;
-                curVertPoly->next = new PolyListCell();
+                curVertPoly->next = shared_ptr<PolyListCell>(new PolyListCell());
                 curVertPoly = curVertPoly->next;
             }
             curVertPoly->poly = curPoly;
@@ -305,8 +305,8 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
 void ObjLoaderBuffer::countPolyVerts()
 {
     shared_ptr<SurfCell> curSurf;
-    PolyCell *curPoly;
-    VertListCell *curVert;
+    shared_ptr<PolyCell> curPoly;
+    shared_ptr<VertListCell> curVert;
     curSurf = surfHead;
     while (curSurf != nullptr)
     {
@@ -328,8 +328,8 @@ void ObjLoaderBuffer::countPolyVerts()
 void ObjLoaderBuffer::loadBuffers()
 {
     shared_ptr<SurfCell> curSurf;
-    PolyCell *curPoly;
-    VertListCell *curVertLC;
+    shared_ptr<PolyCell> curPoly;
+    shared_ptr<VertListCell> curVertLC;
 
     curSurf = surfHead;
     int vertCount;
@@ -364,9 +364,9 @@ void ObjLoaderBuffer::loadBuffers()
             while (curVertLC != nullptr)
             {
                 shared_ptr<VertCell> curVert = vertArray.at(curVertLC->vert);
-                vertices[vInd++] = curVert->worldPos->x;
-                vertices[vInd++] = curVert->worldPos->y;
-                vertices[vInd++] = curVert->worldPos->z;
+                vertices[vInd++] = curVert->worldPos.x;
+                vertices[vInd++] = curVert->worldPos.y;
+                vertices[vInd++] = curVert->worldPos.z;
                 if (!texVertArray.empty())
                 {
                     shared_ptr<Double3D> curTexCoord = texVertArray.at(curVertLC->tex);
@@ -477,25 +477,25 @@ int ObjLoaderBuffer::readMaterials()
                     switch(line.at(1).toLatin1())
                     {
                     case 'a':
-                        materials[matNo].ka->r = tokens[1].toDouble();
-                        materials[matNo].ka->g = tokens[2].toDouble();
-                        materials[matNo].ka->b = tokens[3].toDouble();
+                        materials[matNo].ka.r = tokens[1].toDouble();
+                        materials[matNo].ka.g = tokens[2].toDouble();
+                        materials[matNo].ka.b = tokens[3].toDouble();
                         if (tokens.size() > 4)
-                            materials[matNo].ka->a = tokens[4].toDouble();
+                            materials[matNo].ka.a = tokens[4].toDouble();
                         break;
                     case 'd':
-                        materials[matNo].kd->r = tokens[1].toDouble();
-                        materials[matNo].kd->g = tokens[2].toDouble();
-                        materials[matNo].kd->b = tokens[3].toDouble();
+                        materials[matNo].kd.r = tokens[1].toDouble();
+                        materials[matNo].kd.g = tokens[2].toDouble();
+                        materials[matNo].kd.b = tokens[3].toDouble();
                         if (tokens.size() > 4)
-                            materials[matNo].kd->a = tokens[4].toDouble();
+                            materials[matNo].kd.a = tokens[4].toDouble();
                         break;
                     case 's':
-                        materials[matNo].ks->r = tokens[1].toDouble();
-                        materials[matNo].ks->g = tokens[2].toDouble();
-                        materials[matNo].ks->b = tokens[3].toDouble();
+                        materials[matNo].ks.r = tokens[1].toDouble();
+                        materials[matNo].ks.g = tokens[2].toDouble();
+                        materials[matNo].ks.b = tokens[3].toDouble();
                         if (tokens.size() > 4)
-                            materials[matNo].ks->a = tokens[4].toDouble();
+                            materials[matNo].ks.a = tokens[4].toDouble();
                         break;
                     default:
                         break;
@@ -510,13 +510,13 @@ int ObjLoaderBuffer::readMaterials()
                         do
                         {
                             count++;
-                            materials[matNo].reflectivity->r = tokens[count].toDouble();
+                            materials[matNo].reflectivity.r = tokens[count].toDouble();
                         }
                         while(count < tokens.size() && count < 3);
                         if (count == 1)
                         {
-                            materials[matNo].reflectivity->g = materials[matNo].reflectivity->r;
-                            materials[matNo].reflectivity->b = materials[matNo].reflectivity->r;
+                            materials[matNo].reflectivity.g = materials[matNo].reflectivity.r;
+                            materials[matNo].reflectivity.b = materials[matNo].reflectivity.r;
                         }
                         else
                             fprintf(stderr, "Error reading reflectivity: count=%d\n", count);
@@ -528,13 +528,13 @@ int ObjLoaderBuffer::readMaterials()
                         do
                         {
                             cnt++;
-                            materials[matNo].refractivity->r = tokens[cnt].toDouble();
+                            materials[matNo].refractivity.r = tokens[cnt].toDouble();
                         }
                         while(cnt < tokens.size() && cnt < 3);
                         if (cnt == 1)
                         {
-                            materials[matNo].refractivity->g = materials[matNo].refractivity->r;
-                            materials[matNo].refractivity->b = materials[matNo].refractivity->r;
+                            materials[matNo].refractivity.g = materials[matNo].refractivity.r;
+                            materials[matNo].refractivity.b = materials[matNo].refractivity.r;
                         }
                         else
                             fprintf(stderr, "Error reading refractivity: count=%d\n", cnt);
@@ -549,14 +549,14 @@ int ObjLoaderBuffer::readMaterials()
                      *      #########################################
                      */
                 case 'e':
-                    materials[matNo].emmColor->r = tokens[1].toDouble();
-                    materials[matNo].emmColor->g = tokens[2].toDouble();
-                    materials[matNo].emmColor->b = tokens[3].toDouble();
+                    materials[matNo].emmColor.r = tokens[1].toDouble();
+                    materials[matNo].emmColor.g = tokens[2].toDouble();
+                    materials[matNo].emmColor.b = tokens[3].toDouble();
                     break;
                 case 'T':
-                    materials[matNo].transmissionFilter->r = tokens[1].toDouble();
-                    materials[matNo].transmissionFilter->g = tokens[2].toDouble();
-                    materials[matNo].transmissionFilter->b = tokens[3].toDouble();
+                    materials[matNo].transmissionFilter.r = tokens[1].toDouble();
+                    materials[matNo].transmissionFilter.g = tokens[2].toDouble();
+                    materials[matNo].transmissionFilter.b = tokens[3].toDouble();
                     break;
                 case 'N':
                     switch (line.at(1).toLatin1())
@@ -572,11 +572,11 @@ int ObjLoaderBuffer::readMaterials()
                     }
                     break;
                 case 'L':
-                    materials[matNo].lineColor->r = tokens[1].toDouble();
-                    materials[matNo].lineColor->g = tokens[2].toDouble();
-                    materials[matNo].lineColor->b = tokens[3].toDouble();
+                    materials[matNo].lineColor.r = tokens[1].toDouble();
+                    materials[matNo].lineColor.g = tokens[2].toDouble();
+                    materials[matNo].lineColor.b = tokens[3].toDouble();
                     if (tokens.size() > 4)
-                        materials[matNo].lineColor->a = tokens[4].toDouble();
+                        materials[matNo].lineColor.a = tokens[4].toDouble();
                     break;
                 case 'd':
                     if (line.at(1) == 's')
@@ -622,7 +622,7 @@ int ObjLoaderBuffer::countMaterials(QString fileNameList)
 int ObjLoaderBuffer::findCopyInSurf(shared_ptr<SurfCell> curSurf, Double3D *findme)
 {
     int i = 0;
-    while (i < numVerts && (vertUsedArray.at(i) != curSurf || vertUsedArray.at(i) == nullptr || vertArray.at(i)->worldPos != findme))
+    while (i < numVerts && (vertUsedArray.at(i) != curSurf || vertUsedArray.at(i) == nullptr || &vertArray.at(i)->worldPos != findme))
         i++;
     if (i == numVerts)
         return -1;
