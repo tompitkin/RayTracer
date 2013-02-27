@@ -36,7 +36,7 @@ Scene::Scene(QWidget *parent) :
     }
     updateLight = false;
 
-    shaderProg = new ShaderProgram();
+    shaderProg = shared_ptr<ShaderProgram>(new ShaderProgram());
     if (vertShaderName.empty())
         shaderProg->vertexShader = new ShaderProgram::Shader(defaultVertShader,false, false, -1, GL_VERTEX_SHADER, shaderProg);
     else
@@ -48,19 +48,14 @@ Scene::Scene(QWidget *parent) :
 
     setupUniforms(shaderProg);
 
-    shaders.push_back(*shaderProg);
+    shaders.push_back(shaderProg);
     drawAxis = true;
 }
 
 Scene::~Scene()
 {
-    delete shaderProg;
-    shaderProg = nullptr;
-    for (int i = 0; i < (int)objects.size(); i++)
-    {
-        delete objects[i];
-        objects[i] = nullptr;
-    }
+    shaderProg.reset();
+    curObject.reset();
     delete camera;
     camera = nullptr;
     delete lights;
@@ -69,7 +64,7 @@ Scene::~Scene()
     axes = nullptr;
 }
 
-void Scene::setupUniforms(ShaderProgram *theShader)
+void Scene::setupUniforms(shared_ptr<ShaderProgram> theShader)
 {
     theShader->addUniform(camera->viewMatUniform);
     theShader->addUniform(camera->invCamUniform);
@@ -123,11 +118,11 @@ void Scene::adjustWindowAspect()
 
 void Scene::addObject(QString fileName, int fileType)
 {
-    PMesh *newObj = nullptr;
+    shared_ptr<PMesh> newObj;
     switch(fileType)
     {
     case ObjectTypes::TYPE_OBJ:
-        newObj = new ObjLoaderBuffer(this);
+        newObj = shared_ptr<ObjLoaderBuffer>(new ObjLoaderBuffer(this));
         newObj->objNumber = ++numLoaded;
         break;
     default:
@@ -190,7 +185,7 @@ void Scene::paintGL()
 
     glUseProgram(shaderProg->progID);
 
-    PMesh *curObj = nullptr;
+    shared_ptr<PMesh> curObj;
     for (int i = 0; i < (int)objects.size(); i++)
     {
         curObj = objects.at(i);

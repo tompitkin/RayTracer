@@ -11,14 +11,9 @@ PMesh::PMesh(Scene *aScene)
     numSurf = 0;
     numPolys = 0;
     numMats = 1;
-    surfHead = nullptr;
-    vertArray = nullptr;
-    texVertArray = nullptr;
-    vertNormArray = nullptr;
     materials = nullptr;
     active = true;
 
-    center = new Double3D();
     firstDraw = true;
 
     modelMatUniform = new Matrix4Uniform(nullptr, "modelMat");
@@ -30,6 +25,10 @@ PMesh::PMesh(Scene *aScene)
 
 PMesh::~PMesh()
 {
+    delete boundingSphere;
+    delete useAmbTexUniform;
+    delete useDiffTexUniform;
+    delete useSpecTexUniform;
 }
 
 Sphere *PMesh::calcBoundingSphere()
@@ -38,7 +37,7 @@ Sphere *PMesh::calcBoundingSphere()
     double dist;
     for (int i = 0; i < numVerts; i++)
     {
-        dist = vertArray->at(i)->worldPos->distanceTo(center);
+        dist = vertArray.at(i)->worldPos->distanceTo(center);
         if (dist > greatest)
             greatest = dist;
     }
@@ -50,7 +49,7 @@ Sphere *PMesh::calcBoundingSphere()
 void PMesh::calcPolyNorms()
 {
     Double3D *vector1, *vector2, *cross;
-    SurfCell *curSurf = surfHead;
+    shared_ptr<SurfCell> curSurf = surfHead;
     PolyCell *curPoly;
     VertListCell *curVert, *temp;
 
@@ -71,10 +70,10 @@ void PMesh::calcPolyNorms()
                 {
                     if (curVert->next->next != nullptr)
                     {
-                        vector1 = new Double3D(vertArray->at(curVert->next->vert)->worldPos);
-                        vector1 = new Double3D(vector1->minus(vertArray->at(curVert->vert)->worldPos));
-                        vector2 = new Double3D(vertArray->at(curVert->next->next->vert)->worldPos);
-                        vector2 = new Double3D(vector2->minus(vertArray->at(curVert->vert)->worldPos));
+                        vector1 = new Double3D(vertArray.at(curVert->next->vert)->worldPos);
+                        vector1 = new Double3D(vector1->minus(vertArray.at(curVert->vert)->worldPos));
+                        vector2 = new Double3D(vertArray.at(curVert->next->next->vert)->worldPos);
+                        vector2 = new Double3D(vector2->minus(vertArray.at(curVert->vert)->worldPos));
                         cross = new Double3D(vector1->cross(vector2));
                         curPoly->normal = new Double3D(cross->getUnit());
                     }
@@ -91,12 +90,11 @@ void PMesh::calcPolyNorms()
 
 void PMesh::calcVertNorms()
 {
-    Double3D *norm;
+    Double3D norm;
     PolyListCell *curPolyLC;
-    vertNormArray = new vector<Double3D*>();
-    vertNormArray->resize(this->numVerts);
+    vertNormArray.resize(this->numVerts);
     this->numNorms = this->numVerts;
-    SurfCell *curSurf = surfHead;
+    shared_ptr<SurfCell> curSurf = surfHead;
     while (curSurf != nullptr)
     {
         PolyCell *curPoly = curSurf->polyHead;
@@ -105,23 +103,23 @@ void PMesh::calcVertNorms()
             VertListCell *curVertLC = curPoly->vert;
             while (curVertLC != nullptr)
             {
-                curPolyLC = vertArray->at(curVertLC->vert)->polys;
+                curPolyLC = vertArray.at(curVertLC->vert)->polys;
                 if (curPolyLC != nullptr)
                 {
                     norm = new Double3D();
                     while (curPolyLC != nullptr)
                     {
                         if (curPolyLC->poly != nullptr)
-                            norm = norm->plus(curPolyLC->poly->normal);
+                            norm = norm.plus(curPolyLC->poly->normal);
                         curPolyLC = curPolyLC->next;
                     }
 
-                    vertNormArray->at(curVertLC->vert) = new Double3D(norm->getUnit());
+                    vertNormArray.at(curVertLC->vert) = shared_ptr<Double3D>(new Double3D(norm.getUnit()));
                     curVertLC->norm = curVertLC->vert;
                 }
                 else
                 {
-                    vertNormArray->at(curVertLC->vert) = new Double3D(curPoly->normal);
+                    vertNormArray.at(curVertLC->vert) = shared_ptr<Double3D>(new Double3D(curPoly->normal));
                     curVertLC->norm = curVertLC->vert;
                 }
                 curVertLC = curVertLC->next;
@@ -189,7 +187,7 @@ PMesh::VertCell::VertCell()
     polys = nullptr;
 }
 
-PMesh::VertCell::VertCell(PMesh::VertCell *from)
+PMesh::VertCell::VertCell(const VertCell *from)
 {
     worldPos = new Double3D(from->worldPos);
 }

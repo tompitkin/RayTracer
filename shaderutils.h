@@ -12,7 +12,7 @@ public:
     ShaderUtils(Scene *theScene);
     virtual ~ShaderUtils();
 
-    bool setupShaders(ShaderProgram *prog);
+    bool setupShaders(shared_ptr<ShaderProgram> prog);
     static bool loadAndCompileShader(ShaderProgram::Shader *shaderInfo);
     static GLchar *loadShaderSourceFile(string fileName, GLint *length);
 

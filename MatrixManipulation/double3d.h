@@ -8,13 +8,13 @@ class Double3D
 public:
     Double3D();
     Double3D(double nX, double nY, double nZ);
-    Double3D(Double3D *from);
+    Double3D(const Double3D *from);
 
-    Double3D *minus(Double3D *t1);
-    Double3D *cross(Double3D *t1);
-    Double3D *plus(Double3D *t1);
-    Double3D *getUnit();
-    float distanceTo(Double3D *point);
+    Double3D minus(Double3D t1);
+    Double3D cross(Double3D t1);
+    Double3D plus(Double3D t1);
+    Double3D getUnit();
+    float distanceTo(Double3D point);
     void unitize();
 
     double x;

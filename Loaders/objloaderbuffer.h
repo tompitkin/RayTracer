@@ -21,11 +21,11 @@ public:
     int countTexVerts();
     int readMaterials();
     int countMaterials(QString fileNameList);
-    int findCopyInSurf(SurfCell *curSurf, Double3D *findme);
+    int findCopyInSurf(shared_ptr<SurfCell> curSurf, Double3D *findme);
     void readVerts();
     void readTexVerts();
     void readSurfaces();
-    void addPolyToSurf(SurfCell *curSurf, QString line, bool inSmooth);
+    void addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, bool inSmooth);
     void countPolyVerts();
     void loadBuffers();
 

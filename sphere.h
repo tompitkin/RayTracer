@@ -8,9 +8,9 @@ class PMesh;
 class Sphere
 {
 public:
-    Sphere(Double3D *cent, double rad, PMesh *ownerObj);
+    Sphere(Double3D cent, double rad, PMesh *ownerObj);
 
-    Double3D *center;
+    Double3D center;
     PMesh *theObj;
     double radius;
     double radiusSq;

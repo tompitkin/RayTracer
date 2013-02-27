@@ -3,6 +3,7 @@
 
 #include <GL/glew.h>
 #include <vector>
+#include <memory>
 #include "Uniforms/uniform.h"
 
 using namespace std;
@@ -13,7 +14,7 @@ public:
     class Shader
     {
     public:
-        Shader(string name, bool compiled, bool attached, int id, int type, ShaderProgram *prog);
+        Shader(string name, bool compiled, bool attached, int id, int type, shared_ptr<ShaderProgram> prog);
         virtual ~Shader();
 
         int type;

@@ -11,7 +11,7 @@ ShaderUtils::~ShaderUtils()
     theScene = nullptr;
 }
 
-bool ShaderUtils::setupShaders(ShaderProgram *prog)
+bool ShaderUtils::setupShaders(shared_ptr<ShaderProgram> prog)
 {
     bool compileVertSuccess = false;
     bool compileFragSuccess = false;

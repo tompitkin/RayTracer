@@ -42,12 +42,10 @@ void ObjLoaderBuffer::readVerts()
     numVerts = countVerts();
     if (numVerts > 0)
     {
-        vertArray = new vector<VertCell*>();
-        vertUsedArray = new vector<SurfCell*>();
         for (int i = 0; i < numVerts; i++)
         {
-            vertArray->push_back(new VertCell());
-            vertUsedArray->push_back(nullptr);
+            vertArray.push_back(shared_ptr<VertCell>(new VertCell()));
+            vertUsedArray.push_back(shared_ptr<SurfCell>());
         }
     }
 
@@ -62,19 +60,19 @@ void ObjLoaderBuffer::readVerts()
             {
                 QStringList list = line.split(QRegularExpression("\\s+"), QString::SkipEmptyParts);
                 list.removeAt(0);
-                vertArray->at(vertNo)->worldPos->x = list[0].toDouble();
-                xSum += vertArray->at(vertNo)->worldPos->x;
-                vertArray->at(vertNo)->worldPos->y = list[1].toDouble();
-                ySum += vertArray->at(vertNo)->worldPos->y;
-                vertArray->at(vertNo)->worldPos->z = list[2].toDouble();
-                zSum += vertArray->at(vertNo)->worldPos->z;
+                vertArray.at(vertNo)->worldPos->x = list[0].toDouble();
+                xSum += vertArray.at(vertNo)->worldPos->x;
+                vertArray.at(vertNo)->worldPos->y = list[1].toDouble();
+                ySum += vertArray.at(vertNo)->worldPos->y;
+                vertArray.at(vertNo)->worldPos->z = list[2].toDouble();
+                zSum += vertArray.at(vertNo)->worldPos->z;
                 vertNo++;
             }
         }
     }
-    center->x = xSum/(double)numVerts;
-    center->y = ySum/(double)numVerts;
-    center->z = zSum/(double)numVerts;
+    center.x = xSum/(double)numVerts;
+    center.y = ySum/(double)numVerts;
+    center.z = zSum/(double)numVerts;
 }
 
 void ObjLoaderBuffer::readTexVerts()
@@ -83,9 +81,8 @@ void ObjLoaderBuffer::readTexVerts()
     numTex = countTexVerts();
     if (numTex > 0)
     {
-        texVertArray = new vector<Double3D*>();
         for (int i = 0; i < numTex; i++)
-            texVertArray->push_back(new Double3D());
+            texVertArray.push_back(shared_ptr<Double3D>(new Double3D()));
     }
 
     file->seek(0);
@@ -99,10 +96,10 @@ void ObjLoaderBuffer::readTexVerts()
             {
                 QStringList list = line.split(QRegularExpression("\\s+"), QString::SkipEmptyParts);
                 list.removeAt(0);
-                texVertArray->at(texNo)->x = list[0].toDouble();
-                texVertArray->at(texNo)->y = list[1].toDouble();
-                if (texVertArray->size() > 2)
-                    texVertArray->at(texNo)->z = list[2].toDouble();
+                texVertArray.at(texNo)->x = list[0].toDouble();
+                texVertArray.at(texNo)->y = list[1].toDouble();
+                if (texVertArray.size() > 2)
+                    texVertArray.at(texNo)->z = list[2].toDouble();
                 texNo++;
             }
         }
@@ -112,7 +109,7 @@ void ObjLoaderBuffer::readTexVerts()
 void ObjLoaderBuffer::readSurfaces()
 {
     int curMat = 0;
-    SurfCell *curSurf;
+    shared_ptr<SurfCell> curSurf;
     QString matName;
     bool inSmooth = false;
     file->seek(0);
@@ -169,7 +166,7 @@ void ObjLoaderBuffer::readSurfaces()
                 {
                     fprintf(stdout, "ReadSurface: No active surface available\n");
                     fprintf(stdout, "Creating a default surface\n");
-                    surfHead = new SurfCell("default");
+                    surfHead = shared_ptr<SurfCell>(new SurfCell("default"));
                     curSurf = surfHead;
                 }
                 addPolyToSurf(curSurf, line, inSmooth);
@@ -185,12 +182,12 @@ void ObjLoaderBuffer::readSurfaces()
                     name = tokens[1];
                 if (surfHead == nullptr)
                 {
-                    surfHead = new SurfCell(name);
+                    surfHead = shared_ptr<SurfCell>(new SurfCell(name));
                     curSurf = surfHead;
                 }
                 else
                 {
-                    curSurf->next = new SurfCell(name);
+                    curSurf->next = shared_ptr<SurfCell>(new SurfCell(name));
                     curSurf = curSurf->next;
                 }
                 numSurf++;
@@ -203,7 +200,7 @@ void ObjLoaderBuffer::readSurfaces()
     }
 }
 
-void ObjLoaderBuffer::addPolyToSurf(SurfCell *curSurf, QString line, bool inSmooth)
+void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, bool inSmooth)
 {
     int curIndex = 0;
     PolyCell *curPoly;
@@ -245,24 +242,24 @@ void ObjLoaderBuffer::addPolyToSurf(SurfCell *curSurf, QString line, bool inSmoo
         }
         if (!inSmooth)
         {
-            if (curIndex <= (int)vertUsedArray->size() && vertUsedArray->at(curIndex - 1)!= nullptr)
+            if (curIndex <= (int)vertUsedArray.size() && vertUsedArray.at(curIndex - 1)!= nullptr)
             {
-                vertArray->insert(vertArray->begin()+numVerts, new VertCell(vertArray->at(curIndex-1)));
-                if (texVertArray != nullptr)
-                    texVertArray->insert(texVertArray->begin()+numVerts, new Double3D(texVertArray->at(curIndex-1)));
-                vertUsedArray->insert(vertUsedArray->begin()+numVerts++, curSurf);
+                vertArray.insert(vertArray.begin()+numVerts, shared_ptr<VertCell>(new VertCell(&*vertArray.at(curIndex-1))));
+                if (!texVertArray.empty())
+                    texVertArray.insert(texVertArray.begin()+numVerts, shared_ptr<Double3D>(new Double3D(&*texVertArray.at(curIndex-1))));
+                vertUsedArray.insert(vertUsedArray.begin()+numVerts++, curSurf);
                 curIndex = numVerts;
             }
         }
-        else if(vertUsedArray->at(curIndex - 1) != nullptr && vertUsedArray->at(curIndex-1)!=curSurf)
+        else if(vertUsedArray.at(curIndex - 1) != nullptr && vertUsedArray.at(curIndex-1)!=curSurf)
         {
-            int copyIndex = findCopyInSurf(curSurf, vertArray->at(curIndex-1)->worldPos);
+            int copyIndex = findCopyInSurf(curSurf, vertArray.at(curIndex-1)->worldPos);
             if (copyIndex == -1)
             {
-                vertArray->insert(vertArray->begin()+numVerts, new VertCell(vertArray->at(curIndex-1)));
-                if (texVertArray != nullptr)
-                    texVertArray->insert(texVertArray->begin()+numVerts, new Double3D(texVertArray->at(curIndex-1)));
-                vertUsedArray->insert(vertUsedArray->begin()+numVerts++, curSurf);
+                vertArray.insert(vertArray.begin()+numVerts, shared_ptr<VertCell>(new VertCell(&*vertArray.at(curIndex-1))));
+                if (!texVertArray.empty())
+                    texVertArray.insert(texVertArray.begin()+numVerts, shared_ptr<Double3D>(new Double3D(&*texVertArray.at(curIndex-1))));
+                vertUsedArray.insert(vertUsedArray.begin()+numVerts++, curSurf);
                 curIndex = numVerts;
             }
             else
@@ -271,18 +268,18 @@ void ObjLoaderBuffer::addPolyToSurf(SurfCell *curSurf, QString line, bool inSmoo
 
         curVert->vert = curIndex-1;
         curVert->tex = curIndex-1;
-        vertUsedArray->at(curIndex-1) = curSurf;
+        vertUsedArray.at(curIndex-1) = curSurf;
 
         if (inSmooth)
         {
-            if (vertArray->at(curIndex-1)->polys == nullptr)
+            if (vertArray.at(curIndex-1)->polys == nullptr)
             {
-                vertArray->at(curIndex-1)->polys = new PolyListCell();
-                curVertPoly = vertArray->at(curIndex-1)->polys;
+                vertArray.at(curIndex-1)->polys = new PolyListCell();
+                curVertPoly = vertArray.at(curIndex-1)->polys;
             }
             else
             {
-                curVertPoly = vertArray->at(curIndex-1)->polys;
+                curVertPoly = vertArray.at(curIndex-1)->polys;
                 while (curVertPoly->next != nullptr)
                     curVertPoly = curVertPoly->next;
                 curVertPoly->next = new PolyListCell();
@@ -291,7 +288,7 @@ void ObjLoaderBuffer::addPolyToSurf(SurfCell *curSurf, QString line, bool inSmoo
             curVertPoly->poly = curPoly;
         }
         else
-            vertArray->at(curIndex-1)->polys = nullptr;
+            vertArray.at(curIndex-1)->polys = nullptr;
 
         curIndex = tokens[i].indexOf('/');
         if (curIndex > -1)
@@ -307,7 +304,7 @@ void ObjLoaderBuffer::addPolyToSurf(SurfCell *curSurf, QString line, bool inSmoo
 
 void ObjLoaderBuffer::countPolyVerts()
 {
-    SurfCell *curSurf;
+    shared_ptr<SurfCell> curSurf;
     PolyCell *curPoly;
     VertListCell *curVert;
     curSurf = surfHead;
@@ -330,7 +327,7 @@ void ObjLoaderBuffer::countPolyVerts()
 
 void ObjLoaderBuffer::loadBuffers()
 {
-    SurfCell *curSurf;
+    shared_ptr<SurfCell> curSurf;
     PolyCell *curPoly;
     VertListCell *curVertLC;
 
@@ -366,19 +363,19 @@ void ObjLoaderBuffer::loadBuffers()
             curVertLC = curPoly->vert;
             while (curVertLC != nullptr)
             {
-                VertCell *curVert = vertArray->at(curVertLC->vert);
+                shared_ptr<VertCell> curVert = vertArray.at(curVertLC->vert);
                 vertices[vInd++] = curVert->worldPos->x;
                 vertices[vInd++] = curVert->worldPos->y;
                 vertices[vInd++] = curVert->worldPos->z;
-                if (texVertArray != nullptr)
+                if (!texVertArray.empty())
                 {
-                    Double3D *curTexCoord = texVertArray->at(curVertLC->tex);
+                    shared_ptr<Double3D> curTexCoord = texVertArray.at(curVertLC->tex);
                     texCoords[tind++] = curTexCoord->x;
                     texCoords[tind++] = curTexCoord->y;
                 }
-                normals[nInd++] = vertNormArray->at(curVertLC->vert)->x;
-                normals[nInd++] = vertNormArray->at(curVertLC->vert)->y;
-                normals[nInd++] = vertNormArray->at(curVertLC->vert)->z;
+                normals[nInd++] = vertNormArray.at(curVertLC->vert)->x;
+                normals[nInd++] = vertNormArray.at(curVertLC->vert)->y;
+                normals[nInd++] = vertNormArray.at(curVertLC->vert)->z;
                 curVertLC = curVertLC->next;
             }
             curPoly = curPoly->next;
@@ -622,10 +619,10 @@ int ObjLoaderBuffer::countMaterials(QString fileNameList)
     return matCount;
 }
 
-int ObjLoaderBuffer::findCopyInSurf(PMesh::SurfCell *curSurf, Double3D *findme)
+int ObjLoaderBuffer::findCopyInSurf(shared_ptr<SurfCell> curSurf, Double3D *findme)
 {
     int i = 0;
-    while (i < numVerts && (vertUsedArray->at(i) != curSurf || vertUsedArray->at(i) == nullptr || vertArray->at(i)->worldPos != findme))
+    while (i < numVerts && (vertUsedArray.at(i) != curSurf || vertUsedArray.at(i) == nullptr || vertArray.at(i)->worldPos != findme))
         i++;
     if (i == numVerts)
         return -1;

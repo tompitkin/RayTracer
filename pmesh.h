@@ -27,7 +27,7 @@ public:
     {
     public:
         VertCell();
-        VertCell(VertCell *from);
+        VertCell(const VertCell *from);
 
         PolyListCell *polys;
         Double3D *worldPos;
@@ -54,7 +54,7 @@ public:
         PolyCell();
 
         VertListCell *vert;
-        SurfCell *parentSurf;
+        shared_ptr<SurfCell> parentSurf;
         PolyCell *next;
         Double3D *normal;
         Double3D *tangent;
@@ -79,7 +79,7 @@ public:
         SurfCell(QString name);
 
         PolyCell *polyHead;
-        SurfCell *next;
+        shared_ptr<SurfCell> next;
         QString name;
         GLfloat *vertexBuffer = nullptr;
         GLfloat *normalBuffer = nullptr;
@@ -131,15 +131,15 @@ public:
     Scene *theScene;
     QFile *file;
     QString objName;
-    vector<VertCell*> *vertArray;
-    vector<SurfCell*> *vertUsedArray;
-    vector<Double3D*> *texVertArray;
-    vector<Double3D*> *vertNormArray;
-    SurfCell *surfHead;
+    vector<shared_ptr<VertCell>> vertArray;
+    vector<shared_ptr<SurfCell>> vertUsedArray;
+    vector<shared_ptr<Double3D>> texVertArray;
+    vector<shared_ptr<Double3D>> vertNormArray;
+    shared_ptr<SurfCell> surfHead;
     MaterialCell *materials;
-    Double3D *center;
+    Double3D center;
     Sphere *boundingSphere;
-    ShaderProgram *theShader;
+    shared_ptr<ShaderProgram> theShader;
     GLuint *bufferIDs;
     GLuint *VAOIDs;
     IntUniform *useAmbTexUniform;

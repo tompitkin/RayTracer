@@ -32,7 +32,7 @@ public:
     void draw();
 
     Scene *theScene;
-    ShaderProgram *axesShaderProg;
+    shared_ptr<ShaderProgram> axesShaderProg;
     Axis *xAxis = nullptr;
     Axis *yAxis = nullptr;
     Axis *zAxis = nullptr;

@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 #include <QGLWidget>
 #include <vector>
+#include <memory>
 #include "camera.h"
 #include "pmesh.h"
 #include "lights.h"
@@ -21,18 +22,18 @@ public:
     explicit Scene(QWidget *parent = 0);
     virtual ~Scene();
 
-    void setupUniforms(ShaderProgram *theShader);
+    void setupUniforms(shared_ptr<ShaderProgram> theShader);
     void adjustWindowAspect();
     void addObject(QString fileName, int fileType);
 
-    PMesh *curObject;
-    Camera *camera;
-    Lights *lights;
+    Camera *camera = nullptr;
+    Lights *lights = nullptr;
     Axes *axes = nullptr;
-    ShaderProgram *shaderProg;
+    shared_ptr<PMesh> curObject;
+    shared_ptr<ShaderProgram> shaderProg;
     ShaderUtils shUtil = ShaderUtils(this);
-    vector<PMesh*> objects;
-    vector<ShaderProgram> shaders;
+    vector<shared_ptr<PMesh>> objects;
+    vector<shared_ptr<ShaderProgram>> shaders;
     vector<bool> updateLights;
     string vertShaderName = "";
     string fragShaderName = "";
