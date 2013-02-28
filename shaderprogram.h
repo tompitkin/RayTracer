@@ -27,10 +27,10 @@ public:
     ShaderProgram();
     virtual ~ShaderProgram();
 
-    void addUniform(Uniform *toAdd);
+    void addUniform(shared_ptr<Uniform> toAdd);
 
     GLuint progID;
-    vector<Uniform*> uniformList;
+    vector<shared_ptr<Uniform>> uniformList;
     string baseName;
     Shader *vertexShader;
     Shader *fragmentShader;

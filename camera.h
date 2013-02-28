@@ -17,8 +17,9 @@ public:
     void setViewport(double left, double right, double top, double bottom);
     void setFrustum(double left, double right, double bottom, double top, double nr, double fr);
     void frustumToPerspective();
-    double *makeViewingTransform();
-    double *makePersepctiveTransform();
+    vector<double> makeViewingTransform();
+    vector<double> makePersepctiveTransform();
+    vector<double> makeInverseCamera();
     double getWindowHeight();
     double getWindowWidth();
 
@@ -44,11 +45,12 @@ public:
     double viewportTop = 600.0;
     double viewportBottom = 0.0;
     double aspectRatio;
-    double *viewMat;
-    double *projMat;
-    Matrix4Uniform *viewMatUniform = nullptr;
-    Matrix4Uniform *projMatUniform = nullptr;
-    Matrix4Uniform *invCamUniform = nullptr;
+    vector<double> viewMat;
+    vector<double> projMat;
+    vector<double> inverseCamera;
+    shared_ptr<Matrix4Uniform> viewMatUniform;
+    shared_ptr<Matrix4Uniform> projMatUniform;
+    shared_ptr<Matrix4Uniform> invCamUniform;
     bool frustumChanged = false;
     bool perspectiveChanged = false;
     bool cameraMoved = false;

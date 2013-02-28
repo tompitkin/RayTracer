@@ -1,14 +1,10 @@
-#include <cstring>
-#include <cmath>
-#include <stdio.h>
 #include "matrixops.h"
 
 static int iDF;
 
-double *MatrixOps::newIdentity()
+vector<double> MatrixOps::newIdentity()
 {
-    double *array = new double[16];
-    memset(array, 0.0, sizeof(double)*16);
+    vector<double> array(16, 0);
     array[0] = 1.0;
     array[5] = 1.0;
     array[10] = 1.0;
@@ -16,9 +12,9 @@ double *MatrixOps::newIdentity()
     return array;
 }
 
-double *MatrixOps::multMat(const double *m1, const double *m2)
+vector<double> MatrixOps::multMat(const vector<double> m1, const vector<double> m2)
 {
-    double *prod = new double[16];
+    vector<double> prod(16, 0);
     prod[0] = m1[0] * m2[0] + m1[4] * m2[1] + m1[8] * m2[2] + m1[12] * m2[3];
     prod[1] = m1[1] * m2[0] + m1[5] * m2[1] + m1[9] * m2[2] + m1[13] * m2[3];
     prod[2] = m1[2] * m2[0] + m1[6] * m2[1] + m1[10] * m2[2] + m1[14] * m2[3];
@@ -41,65 +37,60 @@ double *MatrixOps::multMat(const double *m1, const double *m2)
     return prod;
 }
 
-double *MatrixOps::inverseTranspose(const double *m)
+vector<double> MatrixOps::inverseTranspose(const vector<double> m)
 {
-    double **temp = convertToMatrix2D(m);
-    double **result = transpose((const double**)inverse((const double**)temp, 4));
-    return convertToMatrix1D((const double**)result);
+    vector<vector<double>> temp = convertToMatrix2D(m);
+    vector<vector<double>> result = transpose(inverse(temp));
+    return convertToMatrix1D(result);
 }
 
-double *MatrixOps::convertToMatrix1D(const double **m)
+vector<double> MatrixOps::convertToMatrix1D(const vector<vector<double>> m)
 {
-    int num = 4;
-    double *matrix = new double[num*num];
+    int num = m.size();
+    vector<double> matrix(num*num, 0);
     for (int row = 0; row < num; row++)
         for (int col = 0; col < num; col++)
             matrix[(col*num)+row] = m[row][col];
     return matrix;
 }
 
-double MatrixOps::determinant(const double **matrix, int size)
+double MatrixOps::determinant(const vector<vector<double>> matrix)
 {
-
+    int size = matrix.size();
     double det = 1;
-    double **m = upperTriangle(matrix, size);
+    vector<vector<double>> m = upperTriangle(matrix);
     for (int i = 0; i < size; i++)
         det = det * m[i][i];
     det = det * iDF;
     return det;
 }
 
-double **MatrixOps::convertToMatrix2D(const double *m)
+vector<vector<double>> MatrixOps::convertToMatrix2D(const vector<double> m)
 {
-    int num = sqrt(16);
-    double **matrix = new double*[num];
-    for (int i = 0; i < num; i++)
-        matrix[i] = new double[num];
+    int num = sqrt(m.size());
+    vector<vector<double>> matrix(num, vector<double>(4, 0));
     for (int col = 0; col < num; col++)
         for (int row = 0; row < num; row++)
             matrix[row][col] = m[col*num+row];
     return matrix;
 }
 
-double **MatrixOps::transpose(const double **a)
+vector<vector<double>> MatrixOps::transpose(const vector<vector<double>> a)
 {
-    int tms = 4;
-    double **m = new double*[tms];
-    for (int x = 0; x < tms; x++)
-        m[x] = new double[tms];
+    int tms = a.size();
+    vector<vector<double>> m(tms, vector<double>(tms, 0));
     for (int i = 0; i < tms; i++)
         for (int j = 0; j < tms; j++)
             m[i][j] = a[j][i];
     return m;
 }
 
-double **MatrixOps::inverse(const double **a, int size)
+vector<vector<double>> MatrixOps::inverse(const vector<vector<double>> a)
 {
-    double **m = new double*[size];
-    for (int x = 0; x < size; x++)
-        m[x] = new double[size];
-    double **mm = adjoint(a, size);
-    double det = determinant(a, size);
+    int size = a.size();
+    vector<vector<double>> m(size, vector<double>(size, 0));
+    vector<vector<double>> mm = adjoint(a);
+    double det = determinant(a);
     double dd = 0;
     if (det == 0)
         fprintf(stderr, "MatrixOps.inverse(): Determinant Equals 0, Not Invertible.\n");
@@ -111,15 +102,10 @@ double **MatrixOps::inverse(const double **a, int size)
     return m;
 }
 
-double **MatrixOps::upperTriangle(const double **matrix, int size)
+vector<vector<double>> MatrixOps::upperTriangle(const vector<vector<double>> matrix)
 {
-    double **m = new double*[size];
-    copy(matrix, matrix+size, (const double**)m);
-    for (int x = 0; x < size; x++)
-    {
-        m[x] = new double[size];
-        copy(matrix[x], matrix[x]+size, m[x]);
-    }
+    int size = matrix.size();
+    vector<vector<double>> m = matrix;
     double f1 = 0;
     double temp = 0;
     int v = 1;
@@ -162,11 +148,10 @@ double **MatrixOps::upperTriangle(const double **matrix, int size)
     return m;
 }
 
-double **MatrixOps::adjoint(const double **a, int size)
+vector<vector<double>> MatrixOps::adjoint(const vector<vector<double>> a)
 {
-    double **m = new double*[size];
-    for (int x = 0; x < size; x++)
-        m[x] = new double[size];
+    int size = a.size();
+    vector<vector<double>> m(size, vector<double>(size, 0));
     int ii, jj, ia, ja;
     double det;
     for (int i = 0; i < size; i++)
@@ -174,9 +159,7 @@ double **MatrixOps::adjoint(const double **a, int size)
         for (int j = 0; j < size; j++)
         {
             ia = ja = 0;
-            double **ap = new double*[size-1];
-            for (int y = 0; y < (size-1); y++)
-                ap[y] = new double[size-1];
+            vector<vector<double>> ap(size, vector<double>(size, 0));
             for (ii = 0; ii < size; ii++)
             {
                 for (jj = 0; jj < size; jj++)
@@ -191,10 +174,10 @@ double **MatrixOps::adjoint(const double **a, int size)
                     ia++;
                 ja = 0;
             }
-            det = determinant((const double**)ap, size-1);
+            det = determinant(ap);
             m[i][j] = pow(-1, i+j) * det;
         }
     }
-    m = transpose((const double**)m);
+    m = transpose(m);
     return m;
 }

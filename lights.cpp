@@ -11,23 +11,7 @@ Lights::Lights(Scene *parent)
 
 Lights::~Lights()
 {
-    /*theScene = nullptr;
-    for (int x = 0; x < (int)lightAmb.size(); x++)
-        delete lightAmb[x];
-    for (int x = 0; x < (int)lightDiff.size(); x++)
-        delete lightDiff[x];
-    for (int x = 0; x < (int)lightSpec.size(); x++)
-        delete lightSpec[x];
-    for (int x = 0; x < (int)lightPosition.size(); x++)
-        delete lightPosition[x];
-    for (int x = 0; x < (int)lightSwitch.size(); x++)
-        delete lightSwitch[x];
-    for (int x = 0; x < (int)spotExponent.size(); x++)
-        delete spotExponent[x];
-    for (int x = 0; x < (int)spotCutoff.size(); x++)
-        delete spotCutoff[x];
-    for (int x = 0; x < (int)spotDirection.size(); x++)
-        delete spotDirection[x];*/
+    theScene = nullptr;
 }
 
 Lights::Light::Light()
@@ -53,14 +37,14 @@ void Lights::updateLight(int lightIndex)
 {
     string varNum = "lightSettings["+to_string(lightIndex)+"].";
     if (lightSwitch[lightIndex] == nullptr)
-        lightSwitch[lightIndex] = new IntUniform(lights[lightIndex].lightSwitch, varNum+"lightSwitch");
+        lightSwitch[lightIndex] = shared_ptr<IntUniform>(new IntUniform(lights[lightIndex].lightSwitch, varNum+"lightSwitch"));
     else
         lightSwitch[lightIndex]->theInt = lights[lightIndex].lightSwitch;
     lightSwitch[lightIndex]->needsUpdate = true;
 
     if (lightAmb[lightIndex] == nullptr)
     {
-        lightAmb[lightIndex] = new Vec4Uniform(nullptr, varNum+"ambient");
+        lightAmb[lightIndex] = shared_ptr<Vec4Uniform>(new Vec4Uniform(nullptr, varNum+"ambient"));
         lightAmb[lightIndex]->theBuffer = new GLfloat[lights[lightIndex].ambient.size()];
         copy(lights[lightIndex].ambient.begin(), lights[lightIndex].ambient.end(), lightAmb[lightIndex]->theBuffer);
     }
@@ -77,7 +61,7 @@ void Lights::updateLight(int lightIndex)
 
     if (lightDiff[lightIndex] == nullptr)
     {
-        lightDiff[lightIndex] = new Vec4Uniform(nullptr, varNum+"diffuse");
+        lightDiff[lightIndex] = shared_ptr<Vec4Uniform>(new Vec4Uniform(nullptr, varNum+"diffuse"));
         lightDiff[lightIndex]->theBuffer = new GLfloat[lights[lightIndex].diffuse.size()];
         copy(lights[lightIndex].diffuse.begin(), lights[lightIndex].diffuse.end(), lightDiff[lightIndex]->theBuffer);
     }
@@ -94,7 +78,7 @@ void Lights::updateLight(int lightIndex)
 
     if (lightPosition[lightIndex] == nullptr)
     {
-        lightPosition[lightIndex] = new Vec4Uniform(nullptr, varNum+"position");
+        lightPosition[lightIndex] = shared_ptr<Vec4Uniform>(new Vec4Uniform(nullptr, varNum+"position"));
         lightPosition[lightIndex]->theBuffer = new GLfloat[lights[lightIndex].position.size()];
         copy(lights[lightIndex].position.begin(), lights[lightIndex].position.end(), lightPosition[lightIndex]->theBuffer);
     }
@@ -111,7 +95,7 @@ void Lights::updateLight(int lightIndex)
 
     if (lightSpec[lightIndex] == nullptr)
     {
-        lightSpec[lightIndex] = new Vec4Uniform(nullptr, varNum+"specular");
+        lightSpec[lightIndex] = shared_ptr<Vec4Uniform>(new Vec4Uniform(nullptr, varNum+"specular"));
         lightSpec[lightIndex]->theBuffer = new GLfloat[lights[lightIndex].specular.size()];
         copy(lights[lightIndex].specular.begin(), lights[lightIndex].specular.end(), lightSpec[lightIndex]->theBuffer);
     }
@@ -128,7 +112,7 @@ void Lights::updateLight(int lightIndex)
 
     if (spotDirection[lightIndex] == nullptr)
     {
-        spotDirection[lightIndex] = new Vec3Uniform(nullptr, varNum+"spotDirection");
+        spotDirection[lightIndex] = shared_ptr<Vec3Uniform>(new Vec3Uniform(nullptr, varNum+"spotDirection"));
         spotDirection[lightIndex]->theBuffer = new GLfloat[lights[lightIndex].direction.size()];
         copy(lights[lightIndex].direction.begin(), lights[lightIndex].direction.end(), spotDirection[lightIndex]->theBuffer);
     }
@@ -144,7 +128,7 @@ void Lights::updateLight(int lightIndex)
     }
 
     if (spotExponent[lightIndex] == nullptr)
-        spotExponent[lightIndex] = new FloatUniform(lights[lightIndex].spotExponent, varNum+"spotExponent");
+        spotExponent[lightIndex] = shared_ptr<FloatUniform>(new FloatUniform(lights[lightIndex].spotExponent, varNum+"spotExponent"));
     else
     {
         if (!spotExponent[lightIndex]->off)
@@ -157,7 +141,7 @@ void Lights::updateLight(int lightIndex)
     }
 
     if (spotCutoff[lightIndex] == nullptr)
-        spotCutoff[lightIndex] = new FloatUniform(lights[lightIndex].spotCutoff, varNum+"spotCutoff");
+        spotCutoff[lightIndex] = shared_ptr<FloatUniform>(new FloatUniform(lights[lightIndex].spotCutoff, varNum+"spotCutoff"));
     else
     {
         if (!spotCutoff[lightIndex]->off)

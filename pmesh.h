@@ -7,11 +7,15 @@
 #include "GL/glew.h"
 #include "MatrixManipulation/double3d.h"
 #include "Utilities/doublecolor.h"
+#include "Utilities/gl.h"
 #include "sphere.h"
 #include "shaderprogram.h"
 #include "camera.h"
 #include "Uniforms/intuniform.h"
 #include "Uniforms/matrix4uniform.h"
+#include "Uniforms/matrix3uniform.h"
+#include "Uniforms/vec4uniform.h"
+#include "Uniforms/floatuniform.h"
 
 using namespace std;
 
@@ -57,7 +61,7 @@ public:
         virtual ~PolyCell();
 
         shared_ptr<VertListCell> vert;
-        shared_ptr<SurfCell> parentSurf;
+        weak_ptr<SurfCell> parentSurf;
         shared_ptr<PolyCell> next;
         Double3D normal;
         Double3D tangent;
@@ -147,11 +151,16 @@ public:
     shared_ptr<ShaderProgram> theShader;
     GLuint *bufferIDs;
     GLuint *VAOIDs;
+    Vec4Uniform *ambUniform;
+    Vec4Uniform *diffUniform;
+    Vec4Uniform *specUniform;
+    FloatUniform *shinyUniform;
     IntUniform *useAmbTexUniform;
     IntUniform *useDiffTexUniform;
     IntUniform *useSpecTexUniform;
+    Matrix3Uniform *normalMatUniform;
     Matrix4Uniform *modelMatUniform;
-    double *modelMat;
+    vector<double> modelMat;
     bool active;
     bool firstDraw;
     int objNumber;

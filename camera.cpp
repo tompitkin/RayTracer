@@ -8,49 +8,47 @@ Camera::Camera()
     viewportHeight = viewportTop - viewportBottom;
     viewMat = makeViewingTransform();
     projMat = makePersepctiveTransform();
-    viewMatUniform = new Matrix4Uniform(nullptr, "viewMat");
-    projMatUniform = new Matrix4Uniform(nullptr, "projMat");
-    invCamUniform = new Matrix4Uniform(nullptr, "mInverseCamera");
+    viewMatUniform = shared_ptr<Matrix4Uniform>(new Matrix4Uniform(nullptr, "viewMat"));
+    projMatUniform = shared_ptr<Matrix4Uniform>(new Matrix4Uniform(nullptr, "projMat"));
+    invCamUniform = shared_ptr<Matrix4Uniform>(new Matrix4Uniform(nullptr, "mInverseCamera"));
 }
 
 Camera::~Camera()
 {
-    delete []viewMat;
-    delete []projMat;
-    delete viewMatUniform;
-    delete projMatUniform;
-    delete invCamUniform;
+    viewMatUniform.reset();
+    projMatUniform.reset();
+    invCamUniform.reset();
 }
 
 void Camera::updateCamera()
 {
     if (frustumChanged || perspectiveChanged)
     {
-        delete[] projMat;
         projMat = makePersepctiveTransform();
         if (projMatUniform->theBuffer == nullptr)
-        {
             projMatUniform->theBuffer = new GLfloat[16];
-            copy(projMat, projMat+16, projMatUniform->theBuffer);
-        }
-        else
-            copy(projMat, projMat+16, projMatUniform->theBuffer);
+        copy(projMat.begin(), projMat.begin()+16, projMatUniform->theBuffer);
         projMatUniform->needsUpdate = true;
         frustumChanged = false;
         perspectiveChanged = false;
     }
     if (cameraMoved)
     {
-        delete []viewMat;
         viewMat = makeViewingTransform();
         if (viewMatUniform->theBuffer == nullptr)
-        {
             viewMatUniform->theBuffer = new GLfloat[16];
-            copy(viewMat, viewMat+16, viewMatUniform->theBuffer);
-        }
-        else
-            copy(viewMat, viewMat+16, viewMatUniform->theBuffer);
+        copy(viewMat.begin(), viewMat.begin()+16, viewMatUniform->theBuffer);
         viewMatUniform->needsUpdate = true;
+
+        if (!invCamUniform.get()->off)
+        {
+            if (invCamUniform.get()->theBuffer == nullptr)
+            {
+                inverseCamera = makeInverseCamera();
+                invCamUniform.get()->theBuffer = new GLfloat[16];
+            }
+            copy(inverseCamera.begin(), inverseCamera.begin()+16, invCamUniform.get()->theBuffer);
+        }
         cameraMoved = false;
     }
 }
@@ -93,7 +91,7 @@ void Camera::frustumToPerspective()
     fov = 2 * fov;
 }
 
-double *Camera::makeViewingTransform()
+vector<double> Camera::makeViewingTransform()
 {
     Double3D viewPlaneNormal = center.minus(&eye);
     viewPlaneNormal.unitize();
@@ -103,7 +101,7 @@ double *Camera::makeViewingTransform()
     up = xaxis.cross(viewPlaneNormal);
     up.unitize();
 
-    double *rotations = MatrixOps::newIdentity();
+    vector<double> rotations = MatrixOps::newIdentity();
     rotations[0] = xaxis.x;
     rotations[4] = xaxis.y;
     rotations[8] = xaxis.z;
@@ -113,21 +111,18 @@ double *Camera::makeViewingTransform()
     rotations[2] = -viewPlaneNormal.x;
     rotations[6] = -viewPlaneNormal.y;
     rotations[10] = -viewPlaneNormal.z;
-    double *trans = MatrixOps::newIdentity();
+    vector<double> trans = MatrixOps::newIdentity();
     trans[12] = -eye.x;
     trans[13] = -eye.y;
     trans[14] = -eye.z;
-    double *viewTransform = MatrixOps::multMat(rotations, trans);
-
-    delete []rotations;
-    delete []trans;
+    vector<double> viewTransform = MatrixOps::multMat(rotations, trans);
 
     return viewTransform;
 }
 
-double *Camera::makePersepctiveTransform()
+vector<double> Camera::makePersepctiveTransform()
 {
-    double *trans = MatrixOps::newIdentity();
+    vector<double> trans = MatrixOps::newIdentity();
     trans[0] = (2.0f * near)/(windowRight - windowLeft);
     trans[5] = (2.0f * near)/(windowTop - windowBottom);
     trans[8] = (windowRight + windowLeft)/(windowRight - windowLeft);
@@ -137,6 +132,18 @@ double *Camera::makePersepctiveTransform()
     trans[14] = (-2.0f * far * near)/(far - near);
     trans[15] = 0.0f;
     return trans;
+}
+
+vector<double> Camera::makeInverseCamera()
+{
+    vector<double> invCam;
+    vector<double> rotView(16, 0);
+    for (int i = 0; i < 12; i++)
+        rotView[i] = viewMat[i];
+    rotView[12] = rotView[13] = rotView[14] = 0.0;
+    rotView[15] = 1.0;
+    invCam = MatrixOps::convertToMatrix1D(MatrixOps::inverse(MatrixOps::convertToMatrix2D(rotView)));
+    return invCam;
 }
 
 double Camera::getWindowHeight()

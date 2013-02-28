@@ -35,3 +35,10 @@ void MainWindow::on_LoadObject_clicked()
         }
     }
 }
+
+void MainWindow::on_Delete_clicked()
+{
+    int index = ui->CurrentObject->currentIndex();
+    ui->Canvas->deleteObject(index);
+    ui->CurrentObject->removeItem(index);
+}

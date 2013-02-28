@@ -44,8 +44,8 @@ void ObjLoaderBuffer::readVerts()
     {
         for (int i = 0; i < numVerts; i++)
         {
-            vertArray.push_back(shared_ptr<VertCell>(new VertCell()));
-            vertUsedArray.push_back(shared_ptr<SurfCell>());
+            vertArray.insert(vertArray.begin()+i, shared_ptr<VertCell>(new VertCell()));
+            vertUsedArray.insert(vertUsedArray.begin()+i, nullptr);
         }
     }
 
@@ -82,7 +82,7 @@ void ObjLoaderBuffer::readTexVerts()
     if (numTex > 0)
     {
         for (int i = 0; i < numTex; i++)
-            texVertArray.push_back(shared_ptr<Double3D>(new Double3D()));
+            texVertArray.insert(texVertArray.begin()+i, shared_ptr<Double3D>(new Double3D()));
     }
 
     file->seek(0);
@@ -244,9 +244,9 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
         {
             if (curIndex <= (int)vertUsedArray.size() && vertUsedArray.at(curIndex - 1)!= nullptr)
             {
-                vertArray.insert(vertArray.begin()+numVerts, shared_ptr<VertCell>(new VertCell(&*vertArray.at(curIndex-1))));
+                vertArray.insert(vertArray.begin()+numVerts, shared_ptr<VertCell>(new VertCell(vertArray.at(curIndex-1).get())));
                 if (!texVertArray.empty())
-                    texVertArray.insert(texVertArray.begin()+numVerts, shared_ptr<Double3D>(new Double3D(&*texVertArray.at(curIndex-1))));
+                    texVertArray.insert(texVertArray.begin()+numVerts, shared_ptr<Double3D>(new Double3D(texVertArray.at(curIndex-1).get())));
                 vertUsedArray.insert(vertUsedArray.begin()+numVerts++, curSurf);
                 curIndex = numVerts;
             }
@@ -256,9 +256,9 @@ void ObjLoaderBuffer::addPolyToSurf(shared_ptr<SurfCell> curSurf, QString line, 
             int copyIndex = findCopyInSurf(curSurf, &vertArray.at(curIndex-1)->worldPos);
             if (copyIndex == -1)
             {
-                vertArray.insert(vertArray.begin()+numVerts, shared_ptr<VertCell>(new VertCell(&*vertArray.at(curIndex-1))));
+                vertArray.insert(vertArray.begin()+numVerts, shared_ptr<VertCell>(new VertCell(vertArray.at(curIndex-1).get())));
                 if (!texVertArray.empty())
-                    texVertArray.insert(texVertArray.begin()+numVerts, shared_ptr<Double3D>(new Double3D(&*texVertArray.at(curIndex-1))));
+                    texVertArray.insert(texVertArray.begin()+numVerts, shared_ptr<Double3D>(new Double3D(texVertArray.at(curIndex-1).get())));
                 vertUsedArray.insert(vertUsedArray.begin()+numVerts++, curSurf);
                 curIndex = numVerts;
             }

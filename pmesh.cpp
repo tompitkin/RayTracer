@@ -16,7 +16,13 @@ PMesh::PMesh(Scene *aScene)
 
     firstDraw = true;
 
+    normalMatUniform = new Matrix3Uniform(nullptr, "normalMat");
     modelMatUniform = new Matrix4Uniform(nullptr, "modelMat");
+
+    ambUniform = new Vec4Uniform(nullptr, "materialSettings.ambient");
+    diffUniform = new Vec4Uniform(nullptr, "materialSettings.diffuse");
+    specUniform = new Vec4Uniform(nullptr, "materialSettings.specular");
+    shinyUniform = new FloatUniform(0.0f, "materialSettings.shininess");
 
     useAmbTexUniform = new IntUniform(0, "materialSettings.ambTex");
     useDiffTexUniform = new IntUniform(0, "materialSettings.diffTex");
@@ -25,16 +31,32 @@ PMesh::PMesh(Scene *aScene)
 
 PMesh::~PMesh()
 {
+    for (int i = 0; i < (int)vertUsedArray.size(); i++)
+        vertUsedArray[i].reset();
+    for (int i = 0; i < (int)vertArray.size(); i++)
+        vertArray[i].reset();
+    for (int i = 0; i < (int)texVertArray.size(); i++)
+        texVertArray[i].reset();
+    for (int i = 0; i < (int)vertNormArray.size(); i++)
+        vertNormArray[i].reset();
     theScene = nullptr;
+    theShader.reset();
+    //surfHead->polyHead.reset();
+    surfHead.reset();
     delete boundingSphere;
+    delete normalMatUniform;
     delete modelMatUniform;
     delete useAmbTexUniform;
     delete useDiffTexUniform;
     delete useSpecTexUniform;
+    delete ambUniform;
+    delete diffUniform;
+    delete specUniform;
+    delete shinyUniform;
     delete file;
     delete []bufferIDs;
     delete []VAOIDs;
-    delete []modelMat;
+    delete []materials;
 }
 
 Sphere *PMesh::calcBoundingSphere()
@@ -43,7 +65,7 @@ Sphere *PMesh::calcBoundingSphere()
     double dist;
     for (int i = 0; i < numVerts; i++)
     {
-        dist = vertArray.at(i)->worldPos.distanceTo(center);
+        dist = (vertArray.at(i))->worldPos.distanceTo(center);
         if (dist > greatest)
             greatest = dist;
     }
@@ -54,7 +76,7 @@ Sphere *PMesh::calcBoundingSphere()
 
 void PMesh::calcPolyNorms()
 {
-    Double3D *vector1, *vector2, *cross;
+    Double3D vector1, vector2, cross;
     shared_ptr<SurfCell> curSurf = surfHead;
     shared_ptr<PolyCell> curPoly;
     shared_ptr<VertListCell> curVert, temp;
@@ -76,12 +98,12 @@ void PMesh::calcPolyNorms()
                 {
                     if (curVert->next->next != nullptr)
                     {
-                        vector1 = new Double3D(vertArray.at(curVert->next->vert)->worldPos);
-                        vector1 = new Double3D(vector1->minus(vertArray.at(curVert->vert)->worldPos));
-                        vector2 = new Double3D(vertArray.at(curVert->next->next->vert)->worldPos);
-                        vector2 = new Double3D(vector2->minus(vertArray.at(curVert->vert)->worldPos));
-                        cross = new Double3D(vector1->cross(vector2));
-                        curPoly->normal = new Double3D(cross->getUnit());
+                        vector1 = Double3D(vertArray.at(curVert->next->vert)->worldPos);
+                        vector1 = Double3D(vector1.minus(vertArray.at(curVert->vert)->worldPos));
+                        vector2 = Double3D(vertArray.at(curVert->next->next->vert)->worldPos);
+                        vector2 = Double3D(vector2.minus(vertArray.at(curVert->vert)->worldPos));
+                        cross = Double3D(vector1.cross(vector2));
+                        curPoly->normal = Double3D(cross.getUnit());
                     }
                 }
             }
@@ -112,7 +134,7 @@ void PMesh::calcVertNorms()
                 curPolyLC = vertArray.at(curVertLC->vert)->polys;
                 if (curPolyLC != nullptr)
                 {
-                    norm = new Double3D();
+                    norm = Double3D();
                     while (curPolyLC != nullptr)
                     {
                         if (curPolyLC->poly != nullptr)
@@ -148,7 +170,7 @@ void PMesh::updateUniforms()
     }
     for (int i = 0; i < (int)theShader->uniformList.size(); i++)
     {
-        Uniform *thisOne = theShader->uniformList.at(i);
+        shared_ptr<Uniform> thisOne = theShader->uniformList.at(i);
         if (thisOne->needsUpdate)
             thisOne->update(theShader->progID);
         thisOne->needsUpdate=false;
@@ -157,7 +179,7 @@ void PMesh::updateUniforms()
 
 void PMesh::draw(Camera *camera)
 {
-    SurfCell *curSurf;
+    shared_ptr<SurfCell> curSurf;
     fprintf(stdout, "Drawing %s\n", qPrintable(this->objName));
 
     if (firstDraw)
@@ -175,19 +197,96 @@ void PMesh::draw(Camera *camera)
         int previousMat = -1;
         if (modelMatUniform->theBuffer == nullptr)
             modelMatUniform->theBuffer = new GLfloat[16];
-        copy(modelMat, modelMat+16, modelMatUniform->theBuffer);
+        copy(modelMat.begin(), modelMat.begin()+16, modelMatUniform->theBuffer);
         GL::checkGLErrors(" updateMatrix4Uniform(before): ");
         modelMatUniform->update(theShader->progID);
-        double *modelViewMat = MatrixOps::newIdentity();
+        vector<double> modelViewMat = MatrixOps::newIdentity();
         modelViewMat = MatrixOps::multMat(modelViewMat, camera->viewMat);
         modelViewMat = MatrixOps::multMat(modelViewMat, modelMat);
         //MatrixOps::inverseTranspose(modelViewMat);
+        if (normalMatUniform->theBuffer == nullptr)
+            normalMatUniform->theBuffer = new GLfloat[9]();
+        normalMatUniform->theBuffer[0] = (float)modelViewMat[0];
+        normalMatUniform->theBuffer[1] = (float)modelViewMat[1];
+        normalMatUniform->theBuffer[2] = (float)modelViewMat[2];
+        normalMatUniform->theBuffer[3] = (float)modelViewMat[4];
+        normalMatUniform->theBuffer[4] = (float)modelViewMat[5];
+        normalMatUniform->theBuffer[5] = (float)modelViewMat[6];
+        normalMatUniform->theBuffer[6] = (float)modelViewMat[8];
+        normalMatUniform->theBuffer[7] = (float)modelViewMat[9];
+        normalMatUniform->theBuffer[8] = (float)modelViewMat[10];
+        normalMatUniform->update(theScene->shaderProg.get()->progID);
+
+        int surfCount = 0;
+        curSurf = surfHead;
+        while (curSurf != nullptr)
+        {
+            if (firstDraw)
+            {
+                /*
+                 *      #########################################
+                 *      ##############TEXTURE STUFF##############
+                 *      #########################################
+                 */
+
+                curSurf->buffers[0] = bufferIDs[surfCount*3];
+                curSurf->buffers[1] = bufferIDs[surfCount*3+1];
+                if (curSurf->texCoordBuffer != nullptr)
+                    curSurf->buffers[2] = bufferIDs[surfCount*3+2];
+                curSurf->vaoID = VAOIDs[surfCount];
+
+                glBindVertexArray(curSurf->vaoID);
+                glBindBuffer(GL_ARRAY_BUFFER, curSurf->buffers[0]);
+                glBufferData(GL_ARRAY_BUFFER, curSurf->numVerts*3*(sizeof(GLfloat)), curSurf->vertexBuffer, GL_STATIC_DRAW);
+                glEnableVertexAttribArray(0);
+                GL::checkGLErrors("Enabled Vertex VBO");
+                glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0L);
+
+                glBindBuffer(GL_ARRAY_BUFFER, curSurf->buffers[1]);
+                glBufferData(GL_ARRAY_BUFFER, curSurf->numVerts*3*(sizeof(GLfloat)), curSurf->normalBuffer, GL_STATIC_DRAW);
+                glEnableVertexAttribArray(1);
+                GL::checkGLErrors("Enabled Normal VBO");
+                glVertexAttribPointer(1, 3, GL_FLOAT, false, 0, 0L);
+            }
+
+            if (curSurf->material != previousMat)
+            {
+                if (ambUniform->theBuffer != nullptr)
+                    delete []ambUniform->theBuffer;
+                ambUniform->theBuffer = materials[curSurf->material].ka.toFloatv();
+                ambUniform->update(theScene->shaderProg.get()->progID);
+
+                if (diffUniform->theBuffer != nullptr)
+                    delete []diffUniform->theBuffer;
+                diffUniform->theBuffer = materials[curSurf->material].kd.toFloatv();
+                diffUniform->update(theScene->shaderProg.get()->progID);
+
+                if (specUniform->theBuffer != nullptr)
+                    delete []specUniform->theBuffer;
+                specUniform->theBuffer = materials[curSurf->material].ks.toFloatv();
+                specUniform->update(theScene->shaderProg.get()->progID);
+
+                shinyUniform->theFloat = materials[curSurf->material].shiny;
+                shinyUniform->update(theScene->shaderProg.get()->progID);
+            }
+
+            previousMat = curSurf->material;
+
+            glBindVertexArray(curSurf->vaoID);
+            GL::checkGLErrors("Bound VAO");
+
+            glDrawArrays(GL_TRIANGLES, 0, 3*curSurf->numPoly);
+            GL::checkGLErrors(("After Draw"));
+
+            curSurf = curSurf->next;
+            surfCount++;
+        }
+        firstDraw = false;
     }
 }
 
 PMesh::VertCell::VertCell()
 {
-    polys = nullptr;
 }
 
 PMesh::VertCell::VertCell(const VertCell *from)
@@ -204,14 +303,13 @@ PMesh::VertCell::~VertCell()
 PMesh::PolyCell::PolyCell()
 {
     numVerts = 0;
-    vert = nullptr;
     culled = false;
-    next = nullptr;
 }
 
 PMesh::PolyCell::~PolyCell()
 {
     vert.reset();
+    parentSurf.reset();
     next.reset();
 }
 
@@ -223,7 +321,6 @@ PMesh::VertListCell::VertListCell()
     tex = -1;
     tan = -1;
     bitan = -1;
-    next = nullptr;
 }
 
 PMesh::VertListCell::~VertListCell()
@@ -234,8 +331,6 @@ PMesh::VertListCell::~VertListCell()
 
 PMesh::PolyListCell::PolyListCell()
 {
-    poly = nullptr;
-    next = nullptr;
 }
 
 PMesh::PolyListCell::~PolyListCell()
@@ -249,19 +344,19 @@ PMesh::SurfCell::SurfCell(QString name)
 {
     this->name = name;
     numPoly = 0;
-    polyHead = nullptr;
     material = 0;
     numVerts = 0;
 }
 
 PMesh::SurfCell::~SurfCell()
 {
+    next.reset();
     polyHead.reset();
-    delete vertexBuffer;
-    delete normalBuffer;
-    delete texCoordBuffer;
-    delete tangentBuffer;
-    delete bitangentBuffer;
+    delete []vertexBuffer;
+    delete []normalBuffer;
+    delete []texCoordBuffer;
+    delete []tangentBuffer;
+    delete []bitangentBuffer;
 }
 
 

@@ -20,6 +20,8 @@ private slots:
 
     void on_LoadObject_clicked();
 
+    void on_Delete_clicked();
+
 private:
     Ui::MainWindow *ui;
 };

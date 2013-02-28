@@ -3,22 +3,25 @@
 
 #include <string>
 #include <cstring>
+#include <cmath>
+#include <vector>
+#include <stdio.h>
 
 using namespace std;
 
 class MatrixOps
 {
 public:
-    static double *newIdentity();
-    static double *multMat(const double *m1, const double *m2);
-    static double *inverseTranspose(const double *m);
-    static double *convertToMatrix1D(const double **m);
-    static double **convertToMatrix2D(const double *m);
-    static double **transpose(const double **a);
-    static double **inverse(const double **a, int size);
-    static double **upperTriangle(const double **matrix, int size);
-    static double **adjoint(const double **a, int size);
-    static double determinant(const double **matrix, int size);
+    static vector<double> newIdentity();
+    static vector<double> multMat(const vector<double> m1, const vector<double> m2);
+    static vector<double> inverseTranspose(const vector<double> m);
+    static vector<double> convertToMatrix1D(const vector<vector<double> > m);
+    static vector<vector<double>> convertToMatrix2D(const vector<double> m);
+    static vector<vector<double>> transpose(const vector<vector<double> > a);
+    static vector<vector<double>> inverse(const vector<vector<double> > a);
+    static vector<vector<double>> upperTriangle(const vector<vector<double> > matrix);
+    static vector<vector<double>> adjoint(const vector<vector<double> > a);
+    static double determinant(const vector<vector<double> > matrix);
 };
 
 #endif // MATRIXOPS_H

@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 #include "Uniforms/vec4uniform.h"
 #include "Uniforms/vec3uniform.h"
 #include "Uniforms/intuniform.h"
@@ -49,14 +50,14 @@ public:
     Light lights[8];
     Scene *theScene;
 
-    vector<Vec4Uniform*> lightAmb = vector<Vec4Uniform*>(8, nullptr);
-    vector<Vec4Uniform*> lightDiff = vector<Vec4Uniform*>(8, nullptr);
-    vector<Vec4Uniform*> lightSpec = vector<Vec4Uniform*>(8, nullptr);
-    vector<Vec4Uniform*> lightPosition = vector<Vec4Uniform*>(8, nullptr);
-    vector<IntUniform*> lightSwitch = vector<IntUniform*>(8, nullptr);
-    vector<FloatUniform*> spotExponent = vector<FloatUniform*>(8, nullptr);
-    vector<FloatUniform*> spotCutoff = vector<FloatUniform*>(8, nullptr);
-    vector<Vec3Uniform*> spotDirection = vector<Vec3Uniform*>(8, nullptr);
+    vector<shared_ptr<Vec4Uniform>> lightAmb = vector<shared_ptr<Vec4Uniform>>(8, shared_ptr<Vec4Uniform>());
+    vector<shared_ptr<Vec4Uniform>> lightDiff = vector<shared_ptr<Vec4Uniform>>(8, shared_ptr<Vec4Uniform>());
+    vector<shared_ptr<Vec4Uniform>> lightSpec = vector<shared_ptr<Vec4Uniform>>(8, shared_ptr<Vec4Uniform>());
+    vector<shared_ptr<Vec4Uniform>> lightPosition = vector<shared_ptr<Vec4Uniform>>(8, shared_ptr<Vec4Uniform>());
+    vector<shared_ptr<IntUniform>> lightSwitch = vector<shared_ptr<IntUniform>>(8, shared_ptr<IntUniform>());
+    vector<shared_ptr<FloatUniform>> spotExponent = vector<shared_ptr<FloatUniform>>(8, shared_ptr<FloatUniform>());
+    vector<shared_ptr<FloatUniform>> spotCutoff = vector<shared_ptr<FloatUniform>>(8, shared_ptr<FloatUniform>());
+    vector<shared_ptr<Vec3Uniform>> spotDirection = vector<shared_ptr<Vec3Uniform>>(8, shared_ptr<Vec3Uniform>());
 };
 
 #endif // LIGHTS_H

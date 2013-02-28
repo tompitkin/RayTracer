@@ -25,6 +25,7 @@ public:
     void setupUniforms(shared_ptr<ShaderProgram> theShader);
     void adjustWindowAspect();
     void addObject(QString fileName, int fileType);
+    void deleteObject(int index);
 
     Camera *camera = nullptr;
     Lights *lights = nullptr;

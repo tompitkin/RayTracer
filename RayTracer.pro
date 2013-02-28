@@ -79,3 +79,9 @@ OTHER_FILES += \
 OTHER_FILES += \
     Shaders/multi.vert
 
+HEADERS += \
+    Uniforms/matrix3uniform.h
+
+SOURCES += \
+    Uniforms/matrix3uniform.cpp
+

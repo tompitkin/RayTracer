@@ -13,7 +13,7 @@ ShaderProgram::~ShaderProgram()
     fragmentShader = nullptr;
 }
 
-void ShaderProgram::addUniform(Uniform *toAdd)
+void ShaderProgram::addUniform(shared_ptr<Uniform> toAdd)
 {
     uniformList.push_back(toAdd);
 }

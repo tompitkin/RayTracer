@@ -7,6 +7,8 @@ public:
     DoubleColor();
     DoubleColor(double nR, double nG, double nB, double nA);
 
+    float *toFloatv();
+
     double r;
     double g;
     double b;
