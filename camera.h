@@ -22,6 +22,8 @@ public:
     vector<double> makeInverseCamera();
     double getWindowHeight();
     double getWindowWidth();
+    double getViewportHeight();
+    double getViewportWidth();
 
     static const int FRUSTUM_MODE = 0;
     static const int PERSPECTIVE_MODE = 1;

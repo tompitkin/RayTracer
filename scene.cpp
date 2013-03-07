@@ -50,6 +50,7 @@ Scene::Scene(QWidget *parent) :
 
     shaders.push_back(shaderProg);
     drawAxis = true;
+    cull = false;
 }
 
 Scene::~Scene()
@@ -152,6 +153,7 @@ void Scene::initializeGL()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glEnable(GL_DEPTH_TEST);
     axes = new Axes(this);
+    rayTracer = new RayTracer(this);
 }
 
 void Scene::resizeGL(int x, int h)
@@ -164,40 +166,49 @@ void Scene::resizeGL(int x, int h)
 
 void Scene::paintGL()
 {
-    glClearColor(clearColorR, clearColorG, clearColorB, clearColorA);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    if (updateShaders)
+    if (rayTrace)
     {
-        shUtil.setupShaders(shaderProg);
-        updateShaders = false;
+        rayTracer->render();
+        fprintf(stdout, "End RayTrace\n");
+        rayTrace = false;
     }
-
-    if (updateLight)
+    else
     {
-        for (int i = 0; i < (int)updateLights.size(); i++)
+        glClearColor(clearColorR, clearColorG, clearColorB, clearColorA);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        if (updateShaders)
         {
-            if (updateLights[i])
-            {
-                lights->updateLight(i);
-                updateLights[i] = false;
-            }
+            shUtil.setupShaders(shaderProg);
+            updateShaders = false;
         }
-        updateLight = false;
-    }
 
-    camera->updateCamera();
+        if (updateLight)
+        {
+            for (int i = 0; i < (int)updateLights.size(); i++)
+            {
+                if (updateLights[i])
+                {
+                    lights->updateLight(i);
+                    updateLights[i] = false;
+                }
+            }
+            updateLight = false;
+        }
 
-    if (drawAxis)
-        axes->draw();
+        camera->updateCamera();
 
-    glUseProgram(shaderProg->progID);
+        if (drawAxis)
+            axes->draw();
 
-    shared_ptr<PMesh> curObj;
-    for (int i = 0; i < (int)objects.size(); i++)
-    {
-        curObj = objects.at(i);
-        curObj->updateUniforms();
-        curObj->draw(camera);
+        glUseProgram(shaderProg->progID);
+
+        shared_ptr<PMesh> curObj;
+        for (int i = 0; i < (int)objects.size(); i++)
+        {
+            curObj = objects.at(i);
+            curObj->updateUniforms();
+            curObj->draw(camera);
+        }
     }
 }

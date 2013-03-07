@@ -7,6 +7,8 @@ public:
     DoubleColor();
     DoubleColor(double nR, double nG, double nB, double nA);
 
+    void plus(DoubleColor other);
+    void scale(double scaleValue);
     float *toFloatv();
 
     double r;

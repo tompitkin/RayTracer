@@ -42,3 +42,15 @@ void MainWindow::on_Delete_clicked()
     ui->Canvas->deleteObject(index);
     ui->CurrentObject->removeItem(index);
 }
+
+void MainWindow::on_RayTraceButton_clicked()
+{
+    fprintf(stdout, "Ray Tracing\n");
+    ui->Canvas->rayTrace = true;
+    ui->Canvas->repaint();
+}
+
+void MainWindow::on_checkBox_toggled(bool checked)
+{
+    ui->Canvas->rayTracer->spheresOnly = checked;
+}

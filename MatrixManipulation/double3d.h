@@ -2,6 +2,9 @@
 #define DOUBLE3D_H
 
 #include <math.h>
+#include <vector>
+
+using namespace std;
 
 class Double3D
 {
@@ -13,7 +16,11 @@ public:
     Double3D minus(Double3D t1);
     Double3D cross(Double3D t1);
     Double3D plus(Double3D t1);
+    Double3D sDiv(double s);
+    Double3D sMult(double s);
+    Double3D preMultiplyMatrix(vector<double> m);
     Double3D getUnit();
+    double dot(Double3D t1);
     float distanceTo(Double3D point);
     void unitize();
 

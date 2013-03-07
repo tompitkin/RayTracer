@@ -12,6 +12,7 @@
 #include "shaderprogram.h"
 #include "shaderutils.h"
 #include "axes.h"
+#include "RayTracing/raytracer.h"
 #include "Loaders/objecttypes.h"
 #include "Loaders/objloaderbuffer.h"
 
@@ -30,6 +31,7 @@ public:
     Camera *camera = nullptr;
     Lights *lights = nullptr;
     Axes *axes = nullptr;
+    RayTracer *rayTracer = nullptr;
     shared_ptr<PMesh> curObject;
     shared_ptr<ShaderProgram> shaderProg;
     ShaderUtils shUtil = ShaderUtils(this);
@@ -43,6 +45,8 @@ public:
     bool drawAxis = true;
     bool updateLight;
     bool updateShaders = true;
+    bool rayTrace = false;
+    bool cull;
     float clearColorR = 0.0f;
     float clearColorG = 0.0f;
     float clearColorB = 0.0f;

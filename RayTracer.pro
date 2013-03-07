@@ -85,3 +85,15 @@ HEADERS += \
 SOURCES += \
     Uniforms/matrix3uniform.cpp
 
+HEADERS += \
+    RayTracing/raytracer.h
+
+SOURCES += \
+    RayTracing/raytracer.cpp
+
+OTHER_FILES += \
+    Shaders/raytrace.frag
+
+OTHER_FILES += \
+    Shaders/raytrace.vert
+

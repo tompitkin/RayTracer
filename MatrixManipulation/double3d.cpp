@@ -50,6 +50,33 @@ Double3D Double3D::plus(Double3D t1)
     return ans;
 }
 
+Double3D Double3D::sDiv(double s)
+{
+    Double3D ans;
+    ans.x = x/s;
+    ans.y = y/s;
+    ans.z = z/s;
+    return ans;
+}
+
+Double3D Double3D::sMult(double s)
+{
+    Double3D ans;
+    ans.x = s*x;
+    ans.y = s*y;
+    ans.z = s*z;
+    return ans;
+}
+
+Double3D Double3D::preMultiplyMatrix(vector<double> m)
+{
+    Double3D t;
+    t.x = (m[0] * x + m[4] * y + m[8] * z + m[12]);
+    t.y = (m[1] * x + m[5] * y + m[9] * z + m[13]);
+    t.z = (m[2] * x + m[6] * y + m[10] * z + m[14]);
+    return t;
+}
+
 Double3D Double3D::getUnit()
 {
     Double3D unit;
@@ -61,6 +88,11 @@ Double3D Double3D::getUnit()
         unit.z = z / s;
     }
     return unit;
+}
+
+double Double3D::dot(Double3D t1)
+{
+    return (x)*(t1.x) + (y)*(t1.y) + (z)*(t1.z);
 }
 
 float Double3D::distanceTo(Double3D point)

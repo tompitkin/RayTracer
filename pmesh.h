@@ -147,6 +147,7 @@ public:
     shared_ptr<SurfCell> surfHead;
     MaterialCell *materials;
     Double3D center;
+    Double3D viewCenter;
     Sphere *boundingSphere;
     shared_ptr<ShaderProgram> theShader;
     GLuint *bufferIDs;

@@ -155,3 +155,13 @@ double Camera::getWindowWidth()
 {
     return windowRight - windowLeft;
 }
+
+double Camera::getViewportHeight()
+{
+    return viewportTop - viewportBottom;
+}
+
+double Camera::getViewportWidth()
+{
+    return viewportRight - viewportLeft;
+}

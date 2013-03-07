@@ -16,6 +16,20 @@ DoubleColor::DoubleColor(double nR, double nG, double nB, double nA)
     a = nA;
 }
 
+void DoubleColor::plus(DoubleColor other)
+{
+    r = r + other.r;
+    g = g + other.g;
+    b = b + other.b;
+}
+
+void DoubleColor::scale(double scaleValue)
+{
+    r *= scaleValue;
+    g *= scaleValue;
+    b *= scaleValue;
+}
+
 float *DoubleColor::toFloatv()
 {
     float *rtn = new float[4];
