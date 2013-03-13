@@ -28,10 +28,11 @@ public:
 
     DoubleColor trace(Ray ray, int numRecurs);
     DoubleColor shade(shared_ptr<PMesh> theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
-    GLfloat *castRays();
+    GLbyte *castRays();
     void render();
     void calcBounds();
     void doViewTrans();
+    void writeBMP(const char *fname, int w,int h,unsigned char *img);
     double heightOfPixel();
     double widthOfPixel();
     bool traceLightRay(Ray ray, shared_ptr<PMesh> fromObj);
@@ -47,6 +48,8 @@ public:
     DoubleColor Ka;
     DoubleColor Kd;
     DoubleColor Ks;
+    GLuint buffer;
+    GLuint tex;
     bool spheresOnly = false;
     bool reflections = false;
     bool refractions = false;

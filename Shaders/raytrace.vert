@@ -1,6 +1,5 @@
-#version 330
-
-attribute vec2 position;
+#version 410
+layout(location=0) attribute vec2 position;
 
 varying vec2 texcoord;
 
