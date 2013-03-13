@@ -34,7 +34,7 @@ DoubleColor RayTracer::trace(RayTracer::Ray ray, int numRecurs)
             if (spheresOnly)
             {
                 intersectPt = Double3D((ray.Ro.x+(ray.Rd.x*t[0])), (ray.Ro.y+(ray.Rd.y*t[0])), (ray.Ro.z+(ray.Rd.z*t[0])));
-                normal = (intersectPt.minus(theObj->viewCenter)).sDiv(theObj->boundingSphere->radius);
+                normal = (intersectPt.minus(theObj->viewCenter).sDiv(theObj->boundingSphere->radius));
                 normal.unitize();
                 intersectDist = origin.distanceTo(intersectPt);
                 if (intersectDist < minDist)
@@ -135,6 +135,8 @@ DoubleColor RayTracer::shade(shared_ptr<PMesh> theObj, Double3D point, Double3D 
     {
         bool obstructed = false;
         curLight = &theScene->lights->lights[i];
+        if (curLight->lightSwitch == 0)
+            continue;
         lightPos = Double3D(curLight->position[0], curLight->position[1], curLight->position[2]);
         lightViewPos = lightPos.preMultiplyMatrix(theScene->camera->viewMat);
         if(shadows)
@@ -329,7 +331,7 @@ void RayTracer::render()
     /*GLbyte *data = new GLbyte[1920 * 1080 * 3];
     for (int x = 0; x < 1920*1080*3; x++)
         data[x] = rand()%256;*/
-    writeBMP("/home/tom/Desktop/test.bmp", (int)theScene->camera->viewportTop, (int)theScene->camera->viewportWidth, (unsigned char*)data);
+    writeBMP("/home/tom/Desktop/test.bmp", (int)theScene->camera->getViewportWidth(), (int)theScene->camera->viewportTop, (unsigned char*)data);
 
     static const GLfloat position[] = {
         -1.0f, -1.0f,
@@ -351,7 +353,7 @@ void RayTracer::render()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)theScene->camera->viewportTop, (int)theScene->camera->viewportWidth, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, (int)theScene->camera->getViewportWidth(), (int)theScene->camera->viewportTop, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
     GLuint texLoc = glGetUniformLocation(rayTracerShaderProg->progID, "tex");
     glUniform1i(texLoc, 0);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -501,7 +503,7 @@ void RayTracer::doViewTrans()
 
 GLbyte *RayTracer::castRays()
 {
-    GLbyte *data = (GLbyte*)malloc(sizeof(GLbyte)*(((int)theScene->camera->viewportTop) * ((int)theScene->camera->viewportWidth))*3);
+    GLbyte *data = (GLbyte*)malloc(sizeof(GLbyte)*(((int)theScene->camera->viewportTop) * ((int)theScene->camera->getViewportWidth()))*3);
     firstPixel.x = theScene->camera->windowLeft+width/2;
     firstPixel.y = theScene->camera->windowBottom+height/2;
     firstPixel.z = -theScene->camera->near;
@@ -514,7 +516,7 @@ GLbyte *RayTracer::castRays()
     int i = 0;
     for (int y = 0; y < (int)theScene->camera->viewportTop; y++)
     {
-        for (int x = 0; x < (int)theScene->camera->viewportWidth; x++)
+        for (int x = 0; x < (int)theScene->camera->getViewportWidth(); x++)
         {
             ray = Ray(point.getUnit(), origin, EYE);
             rgb = trace(ray, 0);

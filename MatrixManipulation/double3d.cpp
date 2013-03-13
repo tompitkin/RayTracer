@@ -98,7 +98,7 @@ double Double3D::dot(Double3D t1)
 float Double3D::distanceTo(Double3D point)
 {
     Double3D newVect = this->minus(point);
-    float s = (float)sqrt(newVect.x * newVect.x + newVect.y * newVect.y + newVect.z + newVect.z);
+    float s = (float)sqrt(newVect.x * newVect.x + newVect.y * newVect.y + newVect.z * newVect.z);
     return s;
 }
 

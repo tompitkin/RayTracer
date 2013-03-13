@@ -172,6 +172,7 @@ void Scene::paintGL()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         rayTracer->render();
         fprintf(stdout, "End RayTrace\n");
+        rayTrace = false;
     }
     else
     {
