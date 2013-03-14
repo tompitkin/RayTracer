@@ -63,6 +63,8 @@ Scene::~Scene()
     lights = nullptr;
     delete axes;
     axes = nullptr;
+    delete rayTracer;
+    rayTracer = nullptr;
 }
 
 void Scene::setupUniforms(shared_ptr<ShaderProgram> theShader)
@@ -172,7 +174,6 @@ void Scene::paintGL()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         rayTracer->render();
         fprintf(stdout, "End RayTrace\n");
-        rayTrace = false;
     }
     else
     {
@@ -213,4 +214,15 @@ void Scene::paintGL()
             curObj->draw(camera);
         }
     }
+}
+
+void Scene::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+        leftClickStart = event->pos();
+}
+
+void Scene::mouseMoveEvent(QMouseEvent *event)
+{
+
 }

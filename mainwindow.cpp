@@ -31,7 +31,6 @@ void MainWindow::on_LoadObject_clicked()
         {
             QString itemName((*ui->Canvas->objects.back()).objName);
             ui->CurrentObject->addItem(itemName);
-            ui->CurrentObject->repaint();
         }
     }
 }
@@ -50,7 +49,17 @@ void MainWindow::on_RayTraceButton_clicked()
     ui->Canvas->repaint();
 }
 
-void MainWindow::on_checkBox_toggled(bool checked)
+void MainWindow::on_RenderSpheres_toggled(bool checked)
 {
     ui->Canvas->rayTracer->spheresOnly = checked;
+}
+
+void MainWindow::on_CheckeredBackground_toggled(bool checked)
+{
+    ui->Canvas->rayTracer->checkerBackground = checked;
+}
+
+void MainWindow::on_CheckerSize_valueChanged(double arg1)
+{
+    ui->Canvas->rayTracer->checkerSize = arg1;
 }

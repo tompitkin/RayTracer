@@ -56,6 +56,7 @@ public:
     bool shadows = false;
     bool checkerBackground = false;
     int maxRecursiveDepth = 0;
+    double checkerSize = 1000.0;
     double shadeWeight = 0.0;
     double height;
     double width;

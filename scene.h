@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include <QGLWidget>
+#include <QDragMoveEvent>
 #include <vector>
 #include <memory>
 #include "camera.h"
@@ -32,6 +33,7 @@ public:
     Lights *lights = nullptr;
     Axes *axes = nullptr;
     RayTracer *rayTracer = nullptr;
+    QPoint leftClickStart;
     shared_ptr<PMesh> curObject;
     shared_ptr<ShaderProgram> shaderProg;
     ShaderUtils shUtil = ShaderUtils(this);
@@ -57,7 +59,8 @@ protected:
     void initializeGL();
     void resizeGL(int x, int h);
     void paintGL();
-    
+    void mousePressEvent(QMouseEvent *event);
+    void mouseMoveEvent(QMouseEvent *event);
 };
 
 #endif // SCENE_H

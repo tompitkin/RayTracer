@@ -64,17 +64,17 @@ DoubleColor RayTracer::trace(RayTracer::Ray ray, int numRecurs)
             return DoubleColor(0.0, 0.0, 0.0, 1.0);
 
         double c = 0.0;
-        double u = fmod(abs(xFar), 100);
-        double v = fmod(abs(yFar), 100);
+        double u = fmod(abs(xFar), checkerSize);
+        double v = fmod(abs(yFar), checkerSize);
         if ((xFar > 0.0 && yFar < 0.0) || (xFar < 0.0 && yFar > 0.0))
         {
-            if ((u >= 100/2 && v < 100/2) || (u < 100/2 && v>= 100/2))
+            if ((u >= checkerSize/2 && v < checkerSize/2) || (u < checkerSize/2 && v>= checkerSize/2))
                 c = 0;
             else c = 1;
         }
         else
         {
-            if ((u >= 100/2 && v < 100/2) || (u < 100/2 && v>= 100/2))
+            if ((u >= checkerSize/2 && v < checkerSize/2) || (u < checkerSize/2 && v>= checkerSize/2))
                 c = 1;
             else
                 c = 0;
@@ -325,12 +325,6 @@ void RayTracer::render()
     calcBounds();
     doViewTrans();
     GLbyte *data = castRays();
-    /*unsigned char *data = new unsigned char[600 * 600 * 3];
-    for (int x = 0; x < 600*600*3; x++)
-        data[x] = rand()%100+1;*/
-    /*GLbyte *data = new GLbyte[1920 * 1080 * 3];
-    for (int x = 0; x < 1920*1080*3; x++)
-        data[x] = rand()%256;*/
     writeBMP("/home/tom/Desktop/test.bmp", (int)theScene->camera->getViewportWidth(), (int)theScene->camera->viewportTop, (unsigned char*)data);
 
     static const GLfloat position[] = {
@@ -358,7 +352,7 @@ void RayTracer::render()
     glUniform1i(texLoc, 0);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-    delete []data;
+    free(data);
 }
 
 double RayTracer::heightOfPixel()

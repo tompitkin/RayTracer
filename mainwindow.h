@@ -24,7 +24,11 @@ private slots:
 
     void on_RayTraceButton_clicked();
 
-    void on_checkBox_toggled(bool checked);
+    void on_RenderSpheres_toggled(bool checked);
+
+    void on_CheckeredBackground_toggled(bool checked);
+
+    void on_CheckerSize_valueChanged(double arg1);
 
 private:
     Ui::MainWindow *ui;
