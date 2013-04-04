@@ -222,7 +222,50 @@ void Scene::mousePressEvent(QMouseEvent *event)
         leftClickStart = event->pos();
 }
 
+void Scene::mouseReleaseEvent(QMouseEvent *event)
+{
+    this->setCursor(Qt::ArrowCursor);
+}
+
 void Scene::mouseMoveEvent(QMouseEvent *event)
 {
+    if (event->buttons() & Qt::LeftButton)
+    {
+        this->setCursor(Qt::ClosedHandCursor);
 
+        int dx = event->x() - leftClickStart.x();
+        int dy = leftClickStart.y() - event->y();
+        Double3D upVect = this->camera->up;
+        Double3D viewVect = this->camera->calcViewVector();
+        Double3D rightVect = viewVect.cross(upVect);
+        double xVal = 0.0;
+        double yVal = 0.0;
+        double zVal = 0.0;
+
+        leftClickStart.setX(event->x());
+        leftClickStart.setY(event->y());
+
+        xVal = rightVect.x*dx + upVect.x*dy;
+        yVal = rightVect.y*dx + upVect.y*dy;
+        zVal = rightVect.z*dx + upVect.z*dy;
+
+        if (curObject != nullptr)
+        {
+            curObject->translate(xVal/32, yVal/32, zVal/32);
+            this->repaint();
+        }
+    }
+}
+
+void Scene::wheelEvent(QWheelEvent *event)
+{
+    Double3D viewVect = camera->calcViewVector();
+    viewVect.x *= event->angleDelta().y();
+    viewVect.y *= event->angleDelta().y();
+    viewVect.z *= event->angleDelta().y();
+    if (curObject != nullptr)
+    {
+        curObject->translate(viewVect.x/32, viewVect.y/32, viewVect.z/32);
+        this->repaint();
+    }
 }

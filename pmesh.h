@@ -136,6 +136,7 @@ public:
     void calcVertNorms();
     void updateUniforms();
     void draw(Camera *camera);
+    void translate(double x, double y, double z);
 
     Scene *theScene;
     QFile *file;

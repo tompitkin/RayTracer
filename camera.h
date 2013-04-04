@@ -24,6 +24,7 @@ public:
     double getWindowWidth();
     double getViewportHeight();
     double getViewportWidth();
+    Double3D calcViewVector();
 
     static const int FRUSTUM_MODE = 0;
     static const int PERSPECTIVE_MODE = 1;

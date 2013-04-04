@@ -69,7 +69,7 @@ Sphere *PMesh::calcBoundingSphere()
         if (dist > greatest)
             greatest = dist;
     }
-    fprintf(stdout, "Sphere: radius = %f\n",greatest);
+    //fprintf(stdout, "Sphere: radius = %f\n",greatest);
     Sphere *retVal = new Sphere(center, greatest, this);
     return retVal;
 }
@@ -113,7 +113,7 @@ void PMesh::calcPolyNorms()
         }
         curSurf = curSurf->next;
     }
-    fprintf(stdout, "Polygon Normals calculated\n");
+    //fprintf(stdout, "Polygon Normals calculated\n");
 }
 
 void PMesh::calcVertNorms()
@@ -156,7 +156,7 @@ void PMesh::calcVertNorms()
         }
         curSurf = curSurf->next;
     }
-    fprintf(stdout, "Vertex Normals calculated\n");
+    //fprintf(stdout, "Vertex Normals calculated\n");
 }
 
 void PMesh::updateUniforms()
@@ -180,7 +180,7 @@ void PMesh::updateUniforms()
 void PMesh::draw(Camera *camera)
 {
     shared_ptr<SurfCell> curSurf;
-    fprintf(stdout, "Drawing %s\n", qPrintable(this->objName));
+    //fprintf(stdout, "Drawing %s\n", qPrintable(this->objName));
 
     if (firstDraw)
     {
@@ -283,6 +283,15 @@ void PMesh::draw(Camera *camera)
         }
         firstDraw = false;
     }
+}
+
+void PMesh::translate(double x, double y, double z)
+{
+    vector<double> trans = MatrixOps::makeTranslation(x, y, z);
+    center.x += x;
+    center.y += y;
+    center.z += z;
+    modelMat = MatrixOps::multMat(trans, modelMat);
 }
 
 PMesh::VertCell::VertCell()

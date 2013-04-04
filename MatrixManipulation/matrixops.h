@@ -21,6 +21,7 @@ public:
     static vector<vector<double>> inverse(const vector<vector<double> > a);
     static vector<vector<double>> upperTriangle(const vector<vector<double> > matrix);
     static vector<vector<double>> adjoint(const vector<vector<double> > a);
+    static vector<double> makeTranslation(double x, double y, double z);
     static double determinant(const vector<vector<double> > matrix);
 };
 

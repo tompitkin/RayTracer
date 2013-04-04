@@ -180,4 +180,17 @@ vector<vector<double>> MatrixOps::adjoint(const vector<vector<double>> a)
     }
     m = transpose(m);
     return m;
-}
+    }
+
+    vector<double> MatrixOps::makeTranslation(double x, double y, double z)
+    {
+        vector<double> array(16, 0);
+        array[0] = 1.0;
+        array[5] = 1.0;
+        array[10] = 1.0;
+        array[12] = x;
+        array[13] = y;
+        array[14] = z;
+        array[15] = 1.0;
+        return array;
+    }

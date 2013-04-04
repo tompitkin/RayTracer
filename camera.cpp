@@ -165,3 +165,10 @@ double Camera::getViewportWidth()
 {
     return viewportRight - viewportLeft;
 }
+
+Double3D Camera::calcViewVector()
+{
+    Double3D viewVec = center.minus(eye);
+    viewVec.unitize();
+    return viewVec;
+}

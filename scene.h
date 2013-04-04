@@ -5,6 +5,7 @@
 #include <GL/glew.h>
 #include <QGLWidget>
 #include <QDragMoveEvent>
+#include <QGraphicsView>
 #include <vector>
 #include <memory>
 #include "camera.h"
@@ -60,7 +61,9 @@ protected:
     void resizeGL(int x, int h);
     void paintGL();
     void mousePressEvent(QMouseEvent *event);
+    void mouseReleaseEvent(QMouseEvent *event);
     void mouseMoveEvent(QMouseEvent *event);
+    void wheelEvent(QWheelEvent *event);
 };
 
 #endif // SCENE_H
