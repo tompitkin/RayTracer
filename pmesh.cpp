@@ -288,9 +288,6 @@ void PMesh::draw(Camera *camera)
 void PMesh::translate(double x, double y, double z)
 {
     vector<double> trans = MatrixOps::makeTranslation(x, y, z);
-    center.x += x;
-    center.y += y;
-    center.z += z;
     modelMat = MatrixOps::multMat(trans, modelMat);
 }
 
