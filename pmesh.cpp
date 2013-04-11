@@ -289,6 +289,7 @@ void PMesh::translate(double x, double y, double z)
 {
     vector<double> trans = MatrixOps::makeTranslation(x, y, z);
     modelMat = MatrixOps::multMat(trans, modelMat);
+    center = center.preMultiplyMatrix(trans);
 }
 
 PMesh::VertCell::VertCell()

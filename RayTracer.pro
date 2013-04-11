@@ -13,7 +13,6 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = RayTracer
 TEMPLATE = app
 
-
 SOURCES += main.cpp\
         mainwindow.cpp \
     scene.cpp \
@@ -28,11 +27,15 @@ SOURCES += main.cpp\
     Uniforms/vec4uniform.cpp \
     Uniforms/floatuniform.cpp \
     Uniforms/vec3uniform.cpp \
+    Uniforms/matrix3uniform.cpp \
     lights.cpp \
     shaderprogram.cpp \
     Utilities/gl.cpp \
+    Utilities/doublecolor.cpp \
     axes.cpp \
     shaderutils.cpp \
+    sphere.cpp \
+    RayTracing/raytracer.cpp \
 
 HEADERS  += mainwindow.h \
     scene.h \
@@ -48,52 +51,23 @@ HEADERS  += mainwindow.h \
     Uniforms/vec4uniform.h \
     Uniforms/floatuniform.h \
     Uniforms/vec3uniform.h \
+    Uniforms/matrix3uniform.h \
     lights.h \
     shaderprogram.h \
     Utilities/gl.h \
+    Utilities/doublecolor.h \
     axes.h \
     shaderutils.h \
+    sphere.h \
+    RayTracing/raytracer.h \
 
 OTHER_FILES += Shaders/axes.frag \
     Shaders/axes.vert \
+    Shaders/multi.frag \
+    Shaders/multi.vert \
+    Shaders/raytrace.frag \
+    Shaders/raytrace.vert \
 
 FORMS    += mainwindow.ui
 
 LIBS += -lGLEW -lGLU
-
-HEADERS += \
-    Utilities/doublecolor.h
-
-SOURCES += \
-    Utilities/doublecolor.cpp
-
-HEADERS += \
-    sphere.h
-
-SOURCES += \
-    sphere.cpp
-
-OTHER_FILES += \
-    Shaders/multi.frag
-
-OTHER_FILES += \
-    Shaders/multi.vert
-
-HEADERS += \
-    Uniforms/matrix3uniform.h
-
-SOURCES += \
-    Uniforms/matrix3uniform.cpp
-
-HEADERS += \
-    RayTracing/raytracer.h
-
-SOURCES += \
-    RayTracing/raytracer.cpp
-
-OTHER_FILES += \
-    Shaders/raytrace.frag
-
-OTHER_FILES += \
-    Shaders/raytrace.vert
-
