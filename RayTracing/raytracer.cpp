@@ -45,6 +45,35 @@ DoubleColor RayTracer::trace(RayTracer::Ray ray, int numRecurs)
                     minNormal = Double3D(normal);
                 }
             }
+            else
+            {
+                PMesh::SurfCell *surf = theObj->surfHead.get();
+                while (surf != nullptr)
+                {
+                    int i = 0;
+                    for (PMesh::PolyCell *poly = surf->polyHead.get(); i < surf->numPoly; i++, poly = poly->next.get())
+                    {
+                        HitRecord hrec;
+                        if (ray.intersectTriangle(theObj.get(), poly, &hrec, false))
+                        {
+                            if (!(ray.flags == EYE && hrec.backfacing && theScene->cull) || ray.flags == REFLECT || ray.flags == EXTERNAL_REFRACT)
+                            {
+                                intersectDist = ray.Ro.distanceTo(hrec.intersectPoint);
+                                if (intersectDist < minDist)
+                                {
+                                    minDist = intersectDist;
+                                    minObj = theObj;
+                                    minIntPt = new Double3D(hrec.intersectPoint);
+                                    minNormal = new Double3D(hrec.normal);
+                                    minMatIndex = surf->material;
+                                    minBackfacing = hrec.backfacing;
+                                }
+                            }
+                        }
+                    }
+                    surf = surf->next.get();
+                }
+            }
         }
     }
     if (minObj != nullptr)
@@ -448,6 +477,85 @@ bool RayTracer::Ray::intersectSphere(shared_ptr<PMesh> theObj, double *t)
     }
 }
 
+bool RayTracer::Ray::intersectTriangle(PMesh *theObj, PMesh::PolyCell *thePoly, RayTracer::HitRecord *hrec, bool cull)
+{
+    if (thePoly->numVerts != 3)
+    {
+        fprintf(stderr, "PolyCell.intersectTriangle: PolyCell is not a triangle.\n");
+        return false;
+    }
+    Double3D verts[3];
+    Double3D edges[2];
+    Double3D vnorms[3];
+    Double3D pvec, qvec, tvec;
+    double det, inv_det, EPSILON = 0.000001;
+    PMesh::VertListCell *curV;
+    int vindex = 0;
+
+    for (curV = thePoly->vert.get(); curV != nullptr; curV = curV->next.get(), vindex++)
+    {
+        verts[vindex] = theObj->vertArray.at(curV->vert)->viewPos;
+        vnorms[vindex] = theObj->viewNormArray.at(curV->vert);
+    }
+    edges[0] = verts[1].minus(verts[0]);
+    edges[1] = verts[2].minus(verts[0]);
+    pvec = Rd.cross(edges[1]);
+    det = edges[0].dot(pvec);
+    if(cull)
+    {
+        if (det < EPSILON)
+            return false;
+        tvec = Ro.minus(verts[0]);
+        hrec->u = tvec.dot(pvec);
+        if (hrec->u < 0.0 || hrec->u > det)
+            return false;
+        qvec = tvec.cross(edges[0]);
+        hrec->v = Rd.dot(qvec);
+        if (hrec->v < 0.0 || hrec->u + hrec->v > det)
+            return false;
+        hrec->t = edges[1].dot(qvec);
+        inv_det = 1.0/det;
+        hrec->t *= inv_det;
+        hrec->u *= inv_det;
+        hrec->v *= inv_det;
+    }
+    else
+    {
+        if (det > -EPSILON && det < EPSILON)
+            return false;
+        inv_det = 1.0/det;
+        tvec = Ro.minus(verts[0]);
+        hrec->u = tvec.dot(pvec) * inv_det;
+        if (hrec->u < 0.0 || hrec->u > 1.0)
+            return false;
+        qvec = tvec.cross(edges[0]);
+        hrec->v = Rd.dot(qvec) * inv_det;
+        if (hrec->v < 0.0 || hrec->u + hrec->v > 1.0)
+            return false;
+        if (det < -EPSILON)
+            hrec->backfacing = true;
+        else
+            hrec->backfacing = false;
+        hrec->t = edges[1].dot(qvec) * inv_det;
+    }
+    if (hrec->t < EPSILON)
+        return false;
+    else
+    {
+        hrec->intersectPoint = new Double3D((Ro.x + (Rd.x * hrec->t)), (Ro.y + (Rd.y * hrec->t)), (Ro.z + (Rd.z * hrec->t)));
+        double w = 1.0 - hrec->u - hrec->v;
+        Double3D sumNorms;
+        vnorms[0] = vnorms[0].sMult(w);
+        vnorms[1] = vnorms[1].sMult(hrec->u);
+        vnorms[2] = vnorms[2].sMult(hrec->v);
+        sumNorms = vnorms[0].plus(vnorms[1].plus(vnorms[2]));
+        hrec->normal = sumNorms;
+        hrec->normal.unitize();
+        hrec->thisPoly = thePoly;
+        return true;
+    }
+}
+
 void RayTracer::calcBounds()
 {
     Double3D farPlaneNormal(0.0, 0.0, 1.0);
@@ -491,7 +599,15 @@ void RayTracer::doViewTrans()
         modelView = MatrixOps::multMat(modelView, thisObj->modelMat);
         modelView = MatrixOps::multMat(theScene->camera->viewMat, modelView);
         modelViewInvTranspose = MatrixOps::inverseTranspose(modelView);
+        Double3D transNorm;
+        for (int vert = 0; vert < thisObj->numVerts; vert++)
+        {
+            thisObj->vertArray.at(vert)->viewPos = thisObj->vertArray.at(vert)->worldPos.preMultiplyMatrix(modelView);
+            transNorm = thisObj->vertNormArray.at(vert)->preMultiplyMatrix(modelViewInvTranspose);
+            thisObj->viewNormArray.insert(thisObj->viewNormArray.begin()+vert, transNorm);
+        }
         thisObj->viewCenter = thisObj->center.preMultiplyMatrix(theScene->camera->viewMat);
+        thisObj->calcViewPolyNorms();
     }
 }
 
@@ -524,4 +640,23 @@ GLbyte *RayTracer::castRays()
         point.y += height;
     }
     return data;
+}
+
+
+RayTracer::HitRecord::HitRecord()
+{
+    t = 0.0;
+    u = 0.0;
+    v = 0.0;
+    backfacing = false;
+}
+
+RayTracer::HitRecord::HitRecord(double newT, double newU, double newV, Double3D newIntersect, Double3D newNormal, bool newBackFacing)
+{
+    t = newT;
+    u = newU;
+    v = newV;
+    intersectPoint = new Double3D(newIntersect);
+    normal = new Double3D(newNormal);
+    backfacing = newBackFacing;
 }

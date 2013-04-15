@@ -30,6 +30,16 @@ private slots:
 
     void on_CheckerSize_valueChanged(double arg1);
 
+    void on_Reflections_toggled(bool checked);
+
+    void on_Refractions_toggled(bool checked);
+
+    void on_Shadows_toggled(bool checked);
+
+    void on_CurrentObject_currentIndexChanged(int index);
+
+    void on_spinBox_valueChanged(int arg1);
+
 private:
     Ui::MainWindow *ui;
 };

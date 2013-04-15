@@ -11,6 +11,22 @@ class Scene;
 class RayTracer
 {
 public:
+
+    class HitRecord
+    {
+    public:
+        HitRecord();
+        HitRecord(double newT, double newU, double newV, Double3D newIntersect, Double3D newNormal, bool newBackFacing);
+
+        PMesh::PolyCell *thisPoly = nullptr;
+        Double3D intersectPoint;
+        Double3D normal;
+        double t;
+        double u;
+        double v;
+        bool backfacing;
+    };
+
     class Ray
     {
     public:
@@ -18,6 +34,7 @@ public:
         Ray(Double3D dir, Double3D origin, int type);
 
         bool intersectSphere(shared_ptr<PMesh> theObj, double *t);
+        bool intersectTriangle(PMesh *theObj, PMesh::PolyCell *thePoly, RayTracer::HitRecord *hrec, bool cull);
 
         Double3D Rd;
         Double3D Ro;

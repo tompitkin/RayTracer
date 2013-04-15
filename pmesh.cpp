@@ -159,6 +159,47 @@ void PMesh::calcVertNorms()
     //fprintf(stdout, "Vertex Normals calculated\n");
 }
 
+void PMesh::calcViewPolyNorms()
+{
+    PMesh::SurfCell *curSurf;
+    PMesh::PolyCell *curPoly;
+    PMesh::VertListCell *curVert;
+
+    Double3D p1;
+    Double3D p2;
+    Double3D p3;
+    Double3D v1;
+    Double3D v2;
+    Double3D norm;
+
+    curSurf = surfHead.get();
+
+    while (curSurf != nullptr)
+    {
+        curPoly = curSurf->polyHead.get();
+        while (curPoly != nullptr)
+        {
+            curVert = curPoly->vert.get();
+
+            p1 = vertArray.at(curVert->vert)->viewPos;
+            curVert = curVert->next.get();
+            p2 = vertArray.at(curVert->vert)->viewPos;
+            curVert = curVert->next.get();
+            p3 = vertArray.at(curVert->vert)->viewPos;
+
+            v1 = p2.minus(p1);
+            v2 = p3.minus(p2);
+
+            norm = v1.cross(v2);
+            norm.unitize();
+
+            curPoly->viewNorm = norm;
+            curPoly = curPoly->next.get();
+        }
+        curSurf = curSurf->next.get();
+    }
+}
+
 void PMesh::updateUniforms()
 {
     if (glIsProgram(theShader->progID))

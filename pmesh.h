@@ -134,6 +134,7 @@ public:
     Sphere *calcBoundingSphere();
     void calcPolyNorms();
     void calcVertNorms();
+    void calcViewPolyNorms();
     void updateUniforms();
     void draw(Camera *camera);
     void translate(double x, double y, double z);
@@ -145,6 +146,7 @@ public:
     vector<shared_ptr<SurfCell>> vertUsedArray;
     vector<shared_ptr<Double3D>> texVertArray;
     vector<shared_ptr<Double3D>> vertNormArray;
+    vector<Double3D> viewNormArray;
     shared_ptr<SurfCell> surfHead;
     MaterialCell *materials;
     Double3D center;
