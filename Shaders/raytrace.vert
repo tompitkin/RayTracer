@@ -1,7 +1,7 @@
-#version 410
-layout(location=0) attribute vec2 position;
+#version 330
+layout(location=0) in vec2 position;
 
-varying vec2 texcoord;
+out vec2 texcoord;
 
 void main()
 {

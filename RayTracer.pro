@@ -36,6 +36,7 @@ SOURCES += main.cpp\
     shaderutils.cpp \
     sphere.cpp \
     RayTracing/raytracer.cpp \
+    RayTracing/raytracercalc.cpp
 
 HEADERS  += mainwindow.h \
     scene.h \
@@ -60,6 +61,7 @@ HEADERS  += mainwindow.h \
     shaderutils.h \
     sphere.h \
     RayTracing/raytracer.h \
+    RayTracing/raytracercalc.h
 
 OTHER_FILES += Shaders/axes.frag \
     Shaders/axes.vert \

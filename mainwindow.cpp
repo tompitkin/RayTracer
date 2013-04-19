@@ -44,9 +44,8 @@ void MainWindow::on_Delete_clicked()
 
 void MainWindow::on_RayTraceButton_clicked()
 {
-    fprintf(stdout, "Ray Tracing\n");
+    ui->Canvas->rayTracer->calc();
     ui->Canvas->rayTrace = true;
-    ui->Canvas->repaint();
 }
 
 void MainWindow::on_RenderSpheres_toggled(bool checked)
@@ -81,7 +80,10 @@ void MainWindow::on_Shadows_toggled(bool checked)
 
 void MainWindow::on_CurrentObject_currentIndexChanged(int index)
 {
-    ui->Canvas->curObject = ui->Canvas->objects[index];
+    if (index > -1)
+        ui->Canvas->curObject = ui->Canvas->objects[index];
+    else
+        ui->Canvas->curObject = nullptr;
 }
 
 void MainWindow::on_spinBox_valueChanged(int arg1)

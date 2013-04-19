@@ -1,58 +1,39 @@
 #ifndef RAYTRACER_H
 #define RAYTRACER_H
 
+#include <QThread>
+#include <QHBoxLayout>
+#include <QDialog>
+#include <QLabel>
+#include <QProgressBar>
 #include <memory>
 #include "pmesh.h"
 #include "MatrixManipulation/double3d.h"
 #include "Utilities/doublecolor.h"
+#include "RayTracing/raytracercalc.h"
 
 class Scene;
 
-class RayTracer
+class RayTracer : public QObject
 {
 public:
 
-    class HitRecord
+    class PopUp : public QDialog
     {
     public:
-        HitRecord();
-        HitRecord(double newT, double newU, double newV, Double3D newIntersect, Double3D newNormal, bool newBackFacing);
+        PopUp();
 
-        PMesh::PolyCell *thisPoly = nullptr;
-        Double3D intersectPoint;
-        Double3D normal;
-        double t;
-        double u;
-        double v;
-        bool backfacing;
-    };
-
-    class Ray
-    {
-    public:
-        Ray(Double3D dir, Double3D origin);
-        Ray(Double3D dir, Double3D origin, int type);
-
-        bool intersectSphere(shared_ptr<PMesh> theObj, double *t);
-        bool intersectTriangle(PMesh *theObj, PMesh::PolyCell *thePoly, RayTracer::HitRecord *hrec, bool cull);
-
-        Double3D Rd;
-        Double3D Ro;
-        int flags;
+        QHBoxLayout layout;
+        QLabel text;
+        QProgressBar bar;
     };
 
     RayTracer(Scene *theScene);
+    virtual ~RayTracer();
 
-    DoubleColor trace(Ray ray, int numRecurs);
-    DoubleColor shade(shared_ptr<PMesh> theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
-    GLbyte *castRays();
+    void calc();
     void render();
-    void calcBounds();
-    void doViewTrans();
     void writeBMP(const char *fname, int w,int h,unsigned char *img);
-    double heightOfPixel();
-    double widthOfPixel();
-    bool traceLightRay(Ray ray, shared_ptr<PMesh> fromObj);
 
     static const int EYE = 0;
     static const int REFLECT = 0x1;
@@ -60,13 +41,12 @@ public:
     static const int EXTERNAL_REFRACT = 0x4;
     constexpr static const double rhoAIR = 1.0;
     Scene *theScene;
+    RayTracerCalc *rayCalc;
+    PopUp *popup;
     shared_ptr<ShaderProgram> rayTracerShaderProg;
-    Double3D firstPixel;
-    DoubleColor Ka;
-    DoubleColor Kd;
-    DoubleColor Ks;
     GLuint buffer;
     GLuint tex;
+    GLbyte *data;
     bool spheresOnly = false;
     bool reflections = false;
     bool refractions = false;
@@ -74,13 +54,6 @@ public:
     bool checkerBackground = false;
     int maxRecursiveDepth = 0;
     double checkerSize = 1000.0;
-    double shadeWeight = 0.0;
-    double height;
-    double width;
-    double farTop;
-    double farBottom;
-    double farLeft;
-    double farRight;
 };
 
 #endif // RAYTRACER_H
