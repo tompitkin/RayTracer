@@ -159,7 +159,7 @@ vector<vector<double>> MatrixOps::adjoint(const vector<vector<double>> a)
         for (int j = 0; j < size; j++)
         {
             ia = ja = 0;
-            vector<vector<double>> ap(size, vector<double>(size, 0));
+            vector<vector<double>> ap(size-1, vector<double>(size-1, 0));
             for (ii = 0; ii < size; ii++)
             {
                 for (jj = 0; jj < size; jj++)

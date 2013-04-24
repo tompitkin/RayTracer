@@ -68,8 +68,8 @@ DoubleColor RayTracerCalc::trace(RayTracerCalc::Ray ray, int numRecurs)
                                 {
                                     minDist = intersectDist;
                                     minObj = theObj;
-                                    minIntPt = new Double3D(hrec.intersectPoint);
-                                    minNormal = new Double3D(hrec.normal);
+                                    minIntPt = hrec.intersectPoint;
+                                    minNormal = hrec.normal;
                                     minMatIndex = surf->material;
                                     minBackfacing = hrec.backfacing;
                                 }
@@ -180,10 +180,7 @@ DoubleColor RayTracerCalc::shade(PMesh *theObj, Double3D point, Double3D normal,
             Rd.unitize();
             Ray shadowRay = Ray(Double3D(Rd), Double3D(point));
             if (traceLightRay(shadowRay, theObj))
-            {
-                fprintf(stdout, " light#%d\n", i);
                 obstructed = true;
-            }
         }
         if (obstructed)
             continue;
