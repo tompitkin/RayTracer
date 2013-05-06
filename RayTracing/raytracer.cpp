@@ -19,7 +19,8 @@ RayTracer::~RayTracer()
     theScene = nullptr;
     delete rayCalc;
     delete popup;
-    free(data);
+    if (data != nullptr)
+        free(data);
 }
 
 void RayTracer::calc()

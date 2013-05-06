@@ -174,6 +174,8 @@ void Scene::paintGL()
     {
         rayTracer->render();
         rayTrace = false;
+        for (int i = 0; i < (int)objects.size(); i++)
+            objects.at(i)->firstDraw = true;
     }
     else
     {

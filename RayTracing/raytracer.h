@@ -1,7 +1,7 @@
 #ifndef RAYTRACER_H
 #define RAYTRACER_H
 
-#include <QThread>
+#include <QThreadPool>
 #include <QHBoxLayout>
 #include <QDialog>
 #include <QLabel>
@@ -46,7 +46,7 @@ public:
     shared_ptr<ShaderProgram> rayTracerShaderProg;
     GLuint buffer;
     GLuint tex;
-    GLbyte *data;
+    GLbyte *data = nullptr;
     bool spheresOnly = false;
     bool reflections = false;
     bool refractions = false;

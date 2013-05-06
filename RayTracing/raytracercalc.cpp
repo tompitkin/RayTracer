@@ -188,6 +188,7 @@ DoubleColor RayTracerCalc::shade(PMesh *theObj, Double3D point, Double3D normal,
         L = lightViewPos.minus(point);
         L.unitize();
         double LdotN = L.dot(trueNormal);
+        LdotN = max(0.0, LdotN);
         DoubleColor diffComponent(0.0, 0.0, 0.0, 1.0);
         if (LdotN > 0.0)
             diffComponent.plus(DoubleColor(curLight->diffuse[0]*Kd.r*LdotN, curLight->diffuse[1]*Kd.g*LdotN, curLight->diffuse[2]*Kd.b*LdotN, 1.0));
@@ -198,6 +199,7 @@ DoubleColor RayTracerCalc::shade(PMesh *theObj, Double3D point, Double3D normal,
         R = L.sMult(-1.0).plus(sub);
         R.unitize();
         double RdotV = R.dot(V);
+        RdotV = max(0.0, RdotV);
         if (RdotV > 1.0)
             fprintf(stdout, "RdotV: %f\n", RdotV);
         double cosPhiPower = 0.0;
@@ -251,7 +253,6 @@ DoubleColor RayTracerCalc::shade(PMesh *theObj, Double3D point, Double3D normal,
                 newRay = Ray(t, point, INTERNAL_REFRACT);
             refrColor = trace(newRay, numRecurs+1);
         }
-        fprintf(stdout, "Leaving shade recursive depth: %d\n", numRecurs);
     }
 
     if (reflections)
@@ -560,6 +561,9 @@ GLbyte *RayTracerCalc::castRays()
         {
             ray = Ray(point.getUnit(), origin, EYE);
             rgb = trace(ray, 0);
+            rgb.r = rgb.r < 0.0 ? 0.0 : (rgb.r > 1.0 ? 1.0 : rgb.r);
+            rgb.g = rgb.g < 0.0 ? 0.0 : (rgb.g > 1.0 ? 1.0 : rgb.g);
+            rgb.b = rgb.b < 0.0 ? 0.0 : (rgb.b > 1.0 ? 1.0 : rgb.b);
             data[i] = rgb.r*255;
             data[i+1] = rgb.g*255;
             data[i+2] = rgb.b*255;
