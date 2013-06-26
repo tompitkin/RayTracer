@@ -380,6 +380,11 @@ void RayTracerCalc::run()
 
     calcBounds();
     doViewTrans();
+    if (rayTracer->data != nullptr)
+    {
+        free(rayTracer->data);
+        rayTracer->data = nullptr;
+    }
     rayTracer->data = castRays();
 
     this->quit();
@@ -527,7 +532,7 @@ bool RayTracerCalc::Ray::intersectTriangle(PMesh *theObj, PMesh::PolyCell *thePo
         return false;
     else
     {
-        hrec->intersectPoint = new Double3D((Ro.x + (Rd.x * hrec->t)), (Ro.y + (Rd.y * hrec->t)), (Ro.z + (Rd.z * hrec->t)));
+        hrec->intersectPoint = Double3D((Ro.x + (Rd.x * hrec->t)), (Ro.y + (Rd.y * hrec->t)), (Ro.z + (Rd.z * hrec->t)));
         double w = 1.0 - hrec->u - hrec->v;
         Double3D sumNorms;
         vnorms[0] = vnorms[0].sMult(w);

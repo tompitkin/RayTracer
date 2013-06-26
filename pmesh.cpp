@@ -13,6 +13,8 @@ PMesh::PMesh(Scene *aScene)
     numMats = 1;
     materials = nullptr;
     active = true;
+    bufferIDs = nullptr;
+    VAOIDs = nullptr;
 
     firstDraw = true;
 
@@ -54,8 +56,10 @@ PMesh::~PMesh()
     delete specUniform;
     delete shinyUniform;
     delete file;
-    delete []bufferIDs;
-    delete []VAOIDs;
+    if (bufferIDs != nullptr)
+        delete []bufferIDs;
+    if (VAOIDs != nullptr)
+        delete []VAOIDs;
     delete []materials;
 }
 
@@ -225,6 +229,16 @@ void PMesh::draw(Camera *camera)
 
     if (firstDraw)
     {
+        if (bufferIDs != nullptr)
+        {
+            delete []bufferIDs;
+            bufferIDs = nullptr;
+        }
+        if (VAOIDs != nullptr)
+        {
+            delete []VAOIDs;
+            VAOIDs = nullptr;
+        }
         bufferIDs = new GLuint[numSurf*3];
         VAOIDs = new GLuint[numSurf];
         glGenBuffers(numSurf*3, bufferIDs);
