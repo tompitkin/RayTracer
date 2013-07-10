@@ -49,6 +49,7 @@ public:
     bool updateLight;
     bool updateShaders = true;
     bool rayTrace = false;
+    bool sceneChanged = false;
     bool cull;
     float clearColorR = 0.0f;
     float clearColorG = 0.0f;

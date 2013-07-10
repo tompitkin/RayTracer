@@ -1,11 +1,8 @@
 #ifndef RAYTRACER_H
 #define RAYTRACER_H
 
+#include <QProgressDialog>
 #include <QThreadPool>
-#include <QHBoxLayout>
-#include <QDialog>
-#include <QLabel>
-#include <QProgressBar>
 #include <memory>
 #include "pmesh.h"
 #include "MatrixManipulation/double3d.h"
@@ -16,18 +13,8 @@ class Scene;
 
 class RayTracer : public QObject
 {
+    Q_OBJECT
 public:
-
-    class PopUp : public QDialog
-    {
-    public:
-        PopUp();
-
-        QHBoxLayout layout;
-        QLabel text;
-        QProgressBar bar;
-    };
-
     RayTracer(Scene *theScene);
     virtual ~RayTracer();
 
@@ -42,7 +29,7 @@ public:
     constexpr static const double rhoAIR = 1.0;
     Scene *theScene;
     RayTracerCalc *rayCalc;
-    PopUp *popup;
+    QProgressDialog *progress;
     shared_ptr<ShaderProgram> rayTracerShaderProg;
     GLuint buffer;
     GLuint tex;
@@ -54,6 +41,10 @@ public:
     bool checkerBackground = false;
     int maxRecursiveDepth = 0;
     double checkerSize = 1000.0;
+
+public slots:
+    void cancelRayTrace();
+    void finishedRayTrace();
 };
 
 #endif // RAYTRACER_H

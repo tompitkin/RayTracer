@@ -73,6 +73,7 @@ public:
     double farRight;
     double height;
     double width;
+    bool cancelRayTrace;
 
 signals:
     void percentageComplete(int);

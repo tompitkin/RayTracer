@@ -5,9 +5,13 @@ RayTracer::RayTracer(Scene *theScene)
 {
     this->theScene = theScene;
     rayCalc = new RayTracerCalc(this->theScene, this);
-    popup = new PopUp();
-    QObject::connect(rayCalc, SIGNAL(percentageComplete(int)), &popup->bar, SLOT(setValue(int)));
-    QObject::connect(rayCalc, SIGNAL(finished()), popup, SLOT(close()));
+    progress = new QProgressDialog("Ray Tracing...", "Cancel", 0, 100);
+    progress->setWindowModality(Qt::ApplicationModal);
+    progress->setWindowFlags(progress->windowFlags() | Qt::WindowStaysOnTopHint);
+    progress->setWindowTitle("Ray Tracing Progress");
+    QObject::connect(rayCalc, SIGNAL(percentageComplete(int)), progress, SLOT(setValue(int)));
+    QObject::connect(progress, SIGNAL(canceled()), this, SLOT(cancelRayTrace()));
+    QObject::connect(rayCalc, SIGNAL(finished()), this, SLOT(finishedRayTrace()));
     rayTracerShaderProg = shared_ptr<ShaderProgram>(new ShaderProgram());
     rayTracerShaderProg->vertexShader = new ShaderProgram::Shader("raytrace.vert", false, false, -1, GL_VERTEX_SHADER, rayTracerShaderProg);
     rayTracerShaderProg->fragmentShader = new ShaderProgram::Shader("raytrace.frag", false, false, -1, GL_FRAGMENT_SHADER, rayTracerShaderProg);
@@ -18,16 +22,15 @@ RayTracer::~RayTracer()
 {
     theScene = nullptr;
     delete rayCalc;
-    delete popup;
+    delete progress;
     if (data != nullptr)
         free(data);
 }
 
 void RayTracer::calc()
 {
-    popup->bar.setValue(0);
+    progress->setValue(0);
     rayCalc->start();
-    popup->exec();
 }
 
 void RayTracer::writeBMP(const char *fname, int w,int h,unsigned char *img)
@@ -107,12 +110,13 @@ void RayTracer::render()
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-RayTracer::PopUp::PopUp()
+void RayTracer::cancelRayTrace()
 {
-    text.setText("Ray Tracing: ");
-    layout.addWidget(&text);
-    layout.addWidget(&bar);
-    this->setMinimumWidth(300);
-    this->setWindowFlags(Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-    this->setLayout(&layout);
+    rayCalc->cancelRayTrace = true;
+}
+
+void RayTracer::finishedRayTrace()
+{
+    theScene->repaint();
+    theScene->rayTrace = false;
 }

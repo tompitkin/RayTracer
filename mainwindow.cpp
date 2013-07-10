@@ -44,8 +44,8 @@ void MainWindow::on_Delete_clicked()
 
 void MainWindow::on_RayTraceButton_clicked()
 {
-    ui->Canvas->rayTracer->calc();
     ui->Canvas->rayTrace = true;
+    ui->Canvas->rayTracer->calc();
 }
 
 void MainWindow::on_RenderSpheres_toggled(bool checked)

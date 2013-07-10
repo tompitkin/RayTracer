@@ -160,6 +160,9 @@ void Scene::initializeGL()
 
 void Scene::resizeGL(int x, int h)
 {
+    if (rayTrace)
+        rayTracer->cancelRayTrace();
+    sceneChanged = true;
     fprintf(stdout, "ResizeGL: width: %d height: %d\n", x, h);
     glViewport(0, 0, x, h);
     camera->setViewport(0.0, x, h, 0.0);
@@ -172,8 +175,13 @@ void Scene::paintGL()
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (rayTrace)
     {
+        if (sceneChanged)
+        {
+            rayTrace = false;
+            sceneChanged = false;
+            rayTracer->cancelRayTrace();
+        }
         rayTracer->render();
-        rayTrace = false;
         for (int i = 0; i < (int)objects.size(); i++)
             objects.at(i)->firstDraw = true;
     }
@@ -213,6 +221,7 @@ void Scene::paintGL()
             curObj->draw(camera);
         }
     }
+    sceneChanged = false;
 }
 
 void Scene::mousePressEvent(QMouseEvent *event)
@@ -228,6 +237,8 @@ void Scene::mouseReleaseEvent(QMouseEvent *event)
 
 void Scene::mouseMoveEvent(QMouseEvent *event)
 {
+    if(event->buttons())
+        sceneChanged = true;
     if (event->buttons() & Qt::LeftButton)
     {
         this->setCursor(Qt::ClosedHandCursor);
@@ -258,6 +269,7 @@ void Scene::mouseMoveEvent(QMouseEvent *event)
 
 void Scene::wheelEvent(QWheelEvent *event)
 {
+    sceneChanged = true;
     Double3D viewVect = camera->calcViewVector();
     viewVect.x *= event->angleDelta().y();
     viewVect.y *= event->angleDelta().y();

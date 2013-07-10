@@ -558,9 +558,12 @@ GLbyte *RayTracerCalc::castRays()
     DoubleColor rgb;
     Ray ray = Ray(Double3D(0.0, 0.0, -1.0), origin, EYE);
 
+    cancelRayTrace = false;
     int i = 0;
     for (int y = 0; y < (int)theScene->camera->viewportTop; y++)
     {
+        if (cancelRayTrace)
+            break;
         emit percentageComplete(((y*theScene->camera->getViewportWidth())/(theScene->camera->viewportTop*theScene->camera->getViewportWidth()))*100.0);
         for (int x = 0; x < (int)theScene->camera->getViewportWidth(); x++)
         {
@@ -578,6 +581,7 @@ GLbyte *RayTracerCalc::castRays()
         point.x = firstPixel.x;
         point.y += height;
     }
+    emit percentageComplete(100);
     return data;
 }
 
