@@ -6,7 +6,7 @@
 
 QT       += core gui opengl
 
-QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -std=c++11 -fopenmp
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -72,4 +72,4 @@ OTHER_FILES += Shaders/axes.frag \
 
 FORMS    += mainwindow.ui
 
-LIBS += -lGLEW -lGLU
+LIBS += -lGLEW -lGLU -fopenmp
