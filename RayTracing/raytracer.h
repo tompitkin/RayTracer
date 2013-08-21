@@ -8,6 +8,7 @@
 #include "MatrixManipulation/double3d.h"
 #include "Utilities/doublecolor.h"
 #include "RayTracing/raytracercalc.h"
+#include "RayTracing/raytracercuda.h"
 
 class Scene;
 
@@ -29,16 +30,18 @@ public:
     constexpr static const double rhoAIR = 1.0;
     Scene *theScene;
     RayTracerCalc *rayCalc;
+    RayTracerCuda *rayCuda;
     QProgressDialog *progress;
     shared_ptr<ShaderProgram> rayTracerShaderProg;
     GLuint buffer;
     GLuint tex;
-    GLbyte *data = nullptr;
+    unsigned char *data = nullptr;
     bool spheresOnly = false;
     bool reflections = false;
     bool refractions = false;
     bool shadows = false;
     bool checkerBackground = false;
+    bool cuda = false;
     int maxRecursiveDepth = 0;
     double checkerSize = 1000.0;
 

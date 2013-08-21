@@ -47,7 +47,7 @@ public:
 
     DoubleColor trace(Ray ray, int numRecurs);
     DoubleColor shade(PMesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
-    GLbyte *castRays();
+    unsigned char *castRays();
     void run();
     void calcBounds();
     void doViewTrans();

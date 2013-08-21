@@ -5,6 +5,7 @@ RayTracer::RayTracer(Scene *theScene)
 {
     this->theScene = theScene;
     rayCalc = new RayTracerCalc(this->theScene, this);
+    rayCuda = new RayTracerCuda(this->theScene, this);
     progress = new QProgressDialog("Ray Tracing...", "Cancel", 0, 100);
     progress->setWindowModality(Qt::ApplicationModal);
     progress->setWindowFlags(progress->windowFlags() | Qt::WindowStaysOnTopHint);
@@ -22,6 +23,7 @@ RayTracer::~RayTracer()
 {
     theScene = nullptr;
     delete rayCalc;
+    delete rayCuda;
     delete progress;
     if (data != nullptr)
         free(data);
@@ -29,8 +31,16 @@ RayTracer::~RayTracer()
 
 void RayTracer::calc()
 {
-    progress->setValue(0);
-    rayCalc->start();
+    if (cuda)
+    {
+        rayCuda->start();
+        theScene->repaint();
+    }
+    else
+    {
+        progress->setValue(0);
+        rayCalc->start();
+    }
 }
 
 void RayTracer::writeBMP(const char *fname, int w,int h,unsigned char *img)

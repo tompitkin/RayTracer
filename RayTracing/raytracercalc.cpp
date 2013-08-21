@@ -546,9 +546,9 @@ bool RayTracerCalc::Ray::intersectTriangle(PMesh *theObj, PMesh::PolyCell *thePo
     }
 }
 
-GLbyte *RayTracerCalc::castRays()
+unsigned char *RayTracerCalc::castRays()
 {
-    GLbyte *data = (GLbyte*)malloc(sizeof(GLbyte)*(((int)theScene->camera->viewportTop) * ((int)theScene->camera->getViewportWidth()))*3);
+    unsigned char *data = (unsigned char*)malloc(sizeof(unsigned char)*(((int)theScene->camera->viewportTop) * ((int)theScene->camera->getViewportWidth()))*3);
     firstPixel.x = theScene->camera->windowLeft+width/2;
     firstPixel.y = theScene->camera->windowBottom+height/2;
     firstPixel.z = -theScene->camera->near;

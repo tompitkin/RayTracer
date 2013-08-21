@@ -90,3 +90,8 @@ void MainWindow::on_spinBox_valueChanged(int arg1)
 {
     ui->Canvas->rayTracer->maxRecursiveDepth = arg1;
 }
+
+void MainWindow::on_cuda_clicked(bool checked)
+{
+    ui->Canvas->rayTracer->cuda = checked;
+}
