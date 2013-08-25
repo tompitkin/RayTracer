@@ -5,27 +5,14 @@
 #include <stdio.h>
 #include "MatrixManipulation/double3d.h"
 
+#define CHECK_ERROR(err) checkError(err, __FILE__, __LINE__)
+
 struct Bitmap
 {
     unsigned char *data;
     double pixelWidth, pixelHeight;
     int width, height;
     Double3D firstPixel;
-
-    Bitmap(double viewWidth, double viewHeight, double windowWidth, double windowHeight, double windowLeft, double windowBottom, double nearPlane)
-    {
-        width = viewWidth;
-        height = viewHeight;
-        pixelWidth = windowWidth/viewWidth;
-        pixelHeight = windowHeight/viewHeight;
-        data = new unsigned char[width * height * 3];
-        firstPixel = Double3D(windowLeft+width/2, windowBottom+height/2, nearPlane);
-    }
-
-    ~Bitmap()
-    {
-        delete [] data;
-    }
 };
 
 struct Ray
@@ -36,6 +23,6 @@ struct Ray
 };
 
 void cudaStart(Bitmap *bitmap);
-void checkErrors(cudaError_t *error, const char *file, int line);
+void checkError(cudaError_t error, const char *file, int line);
 
 #endif // CUDAKERNEL_H

@@ -17,7 +17,6 @@ public:
 
     Scene *theScene;
     RayTracer *rayTracer;
-    Bitmap *bitmap = nullptr;
 };
 
 #endif // RAYTRACERCUDA_H

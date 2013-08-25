@@ -12,16 +12,23 @@ RayTracerCuda::~RayTracerCuda()
 {
     theScene = nullptr;
     rayTracer = nullptr;
-    if (bitmap != nullptr)
-        delete bitmap;
 }
 
 void RayTracerCuda::start()
 {
-    if (bitmap != nullptr)
-        delete bitmap;
-    bitmap = new Bitmap(theScene->camera->getViewportWidth(), theScene->camera->getViewportHeight(), theScene->camera->getWindowWidth(), theScene->camera->getWindowHeight(), theScene->camera->windowLeft, theScene->camera->windowBottom, theScene->camera->near);
-    rayTracer->data = (unsigned char*)malloc(sizeof(unsigned char)*(bitmap->width * bitmap->height * 3));
-    cudaStart(bitmap);
-    memcpy(rayTracer->data, bitmap->data, (bitmap->width * bitmap->height * 3));
+    Bitmap bitmap;
+    bitmap.width = theScene->camera->getViewportWidth();
+    bitmap.height = theScene->camera->getViewportHeight();
+    bitmap.pixelWidth = theScene->camera->getWindowWidth() / bitmap.width;
+    bitmap.pixelHeight = theScene->camera->getWindowHeight() / bitmap.height;
+    bitmap.firstPixel = Double3D(theScene->camera->windowLeft + bitmap.pixelWidth / 2, theScene->camera->windowBottom + bitmap.pixelHeight / 2, -theScene->camera->near);
+
+    cudaStart(&bitmap);
+
+    if (rayTracer->data != nullptr)
+    {
+        free(rayTracer->data);
+        rayTracer->data = nullptr;
+    }
+    rayTracer->data = bitmap.data;
 }
