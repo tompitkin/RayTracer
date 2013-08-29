@@ -20,7 +20,6 @@ SOURCES += main.cpp\
     Loaders/objloaderbuffer.cpp \
     camera.cpp \
     MatrixManipulation/matrixops.cpp \
-    MatrixManipulation/double3d.cpp \
     Uniforms/uniform.cpp \
     Uniforms/matrix4uniform.cpp \
     Uniforms/intuniform.cpp \
@@ -31,7 +30,6 @@ SOURCES += main.cpp\
     lights.cpp \
     shaderprogram.cpp \
     Utilities/gl.cpp \
-    Utilities/doublecolor.cpp \
     axes.cpp \
     shaderutils.cpp \
     sphere.cpp \
@@ -101,7 +99,7 @@ NVCCFLAGS     = --compiler-options -fno-strict-aliasing -use_fast_math --ptxas-o
 # Prepare the extra compiler configuration (taken from the nvidia forum - i'm not an expert in this part)
 CUDA_INC = $$join(INCLUDEPATH,' -I','-I',' ')
 
-cuda.commands = $$CUDA_DIR/bin/nvcc -c $$NVCCFLAGS \
+cuda.commands = $$CUDA_DIR/bin/nvcc -arch=sm_20 -c $$NVCCFLAGS \
                 $$CUDA_INC $$LIBS  ${QMAKE_FILE_NAME} -o ${QMAKE_FILE_OUT} \
 # nvcc error printout format ever so slightly different from gcc
 # http://forums.nvidia.com/index.php?showtopic=171651

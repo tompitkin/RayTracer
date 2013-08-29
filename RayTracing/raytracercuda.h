@@ -2,6 +2,7 @@
 #define RAYTRACERCUDA_H
 
 #include "RayTracing/cudaKernel.h"
+#include "pmesh.h"
 
 class Scene;
 class RayTracer;
@@ -14,6 +15,8 @@ public:
 
     void start();
     void buildBitmap();
+    void loadObjects(Mesh *output, Scene *input);
+    void doViewTrans();
 
     Scene *theScene;
     RayTracer *rayTracer;

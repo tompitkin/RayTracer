@@ -435,6 +435,7 @@ bool RayTracerCalc::Ray::intersectSphere(PMesh *theObj, double *t)
     {
         t0 = ((-B) - sqrt(discrim))/(2.0*A);
         t1 = ((-B) + sqrt(discrim))/(2.0*A);
+
         if (t0 < EPS)
         {
             if (t1 < EPS)
