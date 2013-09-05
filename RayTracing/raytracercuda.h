@@ -15,7 +15,8 @@ public:
 
     void start();
     void buildBitmap();
-    void loadObjects(Mesh *output, Scene *input);
+    void loadObjects(Mesh *output);
+    void loadLights(LightCuda *output);
     void doViewTrans();
 
     Scene *theScene;

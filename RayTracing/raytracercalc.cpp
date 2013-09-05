@@ -217,13 +217,13 @@ DoubleColor RayTracerCalc::shade(PMesh *theObj, Double3D point, Double3D normal,
         Double3D norm;
         if (ray.flags == INTERNAL_REFRACT)
         {
-            rhoOld = theObj->materials[theObj->objNumber].refractiveIndex;
+            rhoOld = theObj->materials[materialIndex].refractiveIndex;
             rhoNew = rhoAIR;
             norm = Double3D(inv_normal);
         }
         else
         {
-            rhoNew = theObj->materials[theObj->objNumber].refractiveIndex;
+            rhoNew = theObj->materials[materialIndex].refractiveIndex;
             rhoOld = rhoAIR;
             norm = Double3D(normal);
         }

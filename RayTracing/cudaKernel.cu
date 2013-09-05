@@ -3,9 +3,11 @@
 
 __device__ int numObjects;
 __device__ Mesh *objects;
+__device__ int numLights;
+__device__ LightCuda * lights;
 __device__ Options *options;
 
-__global__ void kernel(Bitmap bitmap, Mesh *d_objects, int d_numObjects, Options d_options)
+__global__ void kernel(Bitmap bitmap, Mesh *d_objects, int d_numObjects, LightCuda *d_lights, int d_numLights, Options d_options)
 {
     //Map from threadIdx & blockIdx to pixel position
     int x = threadIdx.x + blockIdx.x * blockDim.x;
@@ -16,6 +18,8 @@ __global__ void kernel(Bitmap bitmap, Mesh *d_objects, int d_numObjects, Options
     {
         numObjects = d_numObjects;
         objects = d_objects;
+        numLights = d_numLights;
+        lights = d_lights;
         options = &d_options;
 
         Double3D point(bitmap.firstPixel);
@@ -25,12 +29,9 @@ __global__ void kernel(Bitmap bitmap, Mesh *d_objects, int d_numObjects, Options
 
         DoubleColor rgb = trace(ray, 0);
 
-        bitmap.data[offset*3 + 0] = rgb.r;
-        bitmap.data[offset*3 + 1] = rgb.g;
-        bitmap.data[offset*3 + 2] = rgb.b;
-
-        objects = NULL;
-        options = NULL;
+        bitmap.data[offset*3 + 0] = (int) (rgb.r * 255);
+        bitmap.data[offset*3 + 1] = (int) (rgb.g * 255);
+        bitmap.data[offset*3 + 2] = (int) (rgb.b * 255);
     }
 }
 
@@ -39,6 +40,8 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
     double t = 0.0;
     double intersectDist = 0.0;
     double minDist = 100000000.0;
+    int minMatIndex = 0;
+    bool minBackfacing = false;
     Mesh *minObj = NULL;
     Double3D minIntPt;
     Double3D minNormal;
@@ -70,7 +73,7 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
     }
     if (minObj != NULL)
     {
-        return DoubleColor(255, 0.0, 0.0, 1.0);
+        return shade(minObj, minIntPt, minNormal, minMatIndex, minBackfacing, ray, numRecurs);
     }
     else
     {
@@ -80,10 +83,12 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
 
 __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs)
 {
-    DoubleColor ambColor;
     DoubleColor shadeColor;
     DoubleColor reflColor;
     DoubleColor refrColor;
+    DoubleColor Ka;
+    DoubleColor Kd;
+    DoubleColor Ks;
     Double3D inv_normal = normal.sMult(-1.0);
     Double3D trueNormal;
     bool reflections;
@@ -103,53 +108,46 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
     Kd = theObj->materials[materialIndex].kd;
     Ks = theObj->materials[materialIndex].ks;
 
-    Double3D lightPos;
-    Double3D lightViewPos;
     Double3D R;
     Double3D L;
     Double3D V;
-    ambColor.r = Ka.r * theScene->lights->lights[0].ambient[0];
-    ambColor.g = Ka.g * theScene->lights->lights[0].ambient[1];
-    ambColor.b = Ka.b * theScene->lights->lights[0].ambient[2];
-    shadeColor.plus(ambColor);
+
+    shadeColor.plus(lights[0].ambient);
 
     V = Double3D(0.0, 0.0, 0.0).minus(point);
     V.unitize();
 
-    if (ray.flags == EYE && backFacing && !theScene->cull)
+    if (ray.flags == EYE && backFacing && !options->cull)
         trueNormal = inv_normal;
     else if (ray.flags == INTERNAL_REFRACT && backFacing)
         trueNormal = inv_normal;
     else
         trueNormal = normal;
 
-    Lights::Light *curLight;
-    for (int i = 0; i < 8; i++)
+    LightCuda *curLight;
+    for (int i = 0; i < numLights; i++)
     {
         bool obstructed = false;
-        curLight = &theScene->lights->lights[i];
-        if (curLight->lightSwitch == 0)
-            continue;
-        lightPos = Double3D(curLight->position[0], curLight->position[1], curLight->position[2]);
-        lightViewPos = lightPos.preMultiplyMatrix(theScene->camera->viewMat);
-        if(rayTracer->shadows)
+        curLight = &lights[i];
+
+        if(options->shadows)
         {
-            Double3D Rd(lightViewPos.minus(point));
+            Double3D Rd(curLight->viewPosition.minus(point));
             Rd.unitize();
             Ray shadowRay = Ray(Double3D(Rd), Double3D(point));
-            if (traceLightRay(shadowRay, theObj))
+            if (traceLightRay(shadowRay))
                 obstructed = true;
         }
         if (obstructed)
             continue;
 
-        L = lightViewPos.minus(point);
+        L = curLight->viewPosition.minus(point);
         L.unitize();
         double LdotN = L.dot(trueNormal);
         LdotN = max(0.0, LdotN);
         DoubleColor diffComponent(0.0, 0.0, 0.0, 1.0);
         if (LdotN > 0.0)
-            diffComponent.plus(DoubleColor(curLight->diffuse[0]*Kd.r*LdotN, curLight->diffuse[1]*Kd.g*LdotN, curLight->diffuse[2]*Kd.b*LdotN, 1.0));
+            diffComponent.plus(DoubleColor(curLight->diffuse.r*Kd.r*LdotN, curLight->diffuse.g*Kd.g*LdotN, curLight->diffuse.b*Kd.b*LdotN, 1.0));
         shadeColor.plus(diffComponent);
 
         Double3D Pr = trueNormal.sMult(LdotN);
@@ -158,30 +156,28 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
         R.unitize();
         double RdotV = R.dot(V);
         RdotV = max(0.0, RdotV);
-        if (RdotV > 1.0)
-            fprintf(stdout, "RdotV: %f\n", RdotV);
         double cosPhiPower = 0.0;
         if (RdotV > 0.0)
             cosPhiPower = pow(RdotV, theObj->materials[materialIndex].shiny);
-        DoubleColor specComponent(curLight->specular[0]*Ks.r*cosPhiPower, curLight->specular[1]*Ks.g*cosPhiPower, curLight->specular[2]*Ks.b*cosPhiPower, 1.0);
+        DoubleColor specComponent(curLight->specular.r*Ks.r*cosPhiPower, curLight->specular.g*Ks.g*cosPhiPower, curLight->specular.b*Ks.b*cosPhiPower, 1.0);
         shadeColor.plus(specComponent);
     }
-    if (numRecurs >= rayTracer->maxRecursiveDepth)
+    if (numRecurs >= options->maxRecursiveDepth)
         return shadeColor;
 
-    if (refractions)
+    /*if (refractions)
     {
         double rhoNew, rhoOld;
         Double3D norm;
         if (ray.flags == INTERNAL_REFRACT)
         {
-            rhoOld = theObj->materials[theObj->objNumber].refractiveIndex;
+            rhoOld = theObj->materials[materialIndex].refractiveIndex;
             rhoNew = rhoAIR;
             norm = Double3D(inv_normal);
         }
         else
         {
-            rhoNew = theObj->materials[theObj->objNumber].refractiveIndex;
+            rhoNew = theObj->materials[materialIndex].refractiveIndex;
             rhoOld = rhoAIR;
             norm = Double3D(normal);
         }
@@ -225,6 +221,7 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
     }
 
     DoubleColor rtnColor;
+    double shadeWeight;
 
     if (reflections && !refractions)
     {
@@ -256,33 +253,70 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
         return rtnColor;
     }
     else
-        return shadeColor;
+        return shadeColor;*/
 }
 
-void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, Options *options)
+__device__ bool traceLightRay(Ray ray)
+{
+    double t = 0.0;
+    for (int obj = 0; obj < numObjects; obj++)
+    {
+        if (ray.intersectSphere(&objects[obj], &t))
+        {
+            if (abs(t) < 0.0001)
+                return false;
+            else
+                return true;
+        }
+    }
+    return false;
+}
+
+void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options)
 {
     unsigned char *d_bitmap;
     unsigned char *h_bitmap;
     Mesh *d_objects;
+    Mesh *h_objects;
+    LightCuda *d_lights;
 
     CHECK_ERROR(cudaMalloc((void**)&d_bitmap, bitmap->width * bitmap->height * 3));
     h_bitmap = (unsigned char*)malloc(sizeof(unsigned char) * (bitmap->width * bitmap->height * 3));
 
     bitmap->data = d_bitmap;
 
+    h_objects = (Mesh *)malloc(sizeof(Mesh) *  numObjects);
+    memcpy(h_objects, objects, sizeof(Mesh) * numObjects);
+
+    for (int x = 0; x < numObjects; x++)
+    {
+        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].materials, sizeof(Material) * h_objects[x].numMats));
+        CHECK_ERROR(cudaMemcpy(h_objects[x].materials, objects[x].materials, sizeof(Material) * h_objects[x].numMats, cudaMemcpyHostToDevice));
+    }
+
     CHECK_ERROR(cudaMalloc((void**)&d_objects, sizeof(Mesh) * numObjects));
-    CHECK_ERROR(cudaMemcpy(d_objects, objects, sizeof(Mesh) * numObjects, cudaMemcpyHostToDevice));
+    CHECK_ERROR(cudaMemcpy(d_objects, h_objects, sizeof(Mesh) * numObjects, cudaMemcpyHostToDevice));
+
+    CHECK_ERROR(cudaMalloc((void**)&d_lights, sizeof(LightCuda) * numLights));
+    CHECK_ERROR(cudaMemcpy(d_lights, lights, sizeof(LightCuda) * numLights, cudaMemcpyHostToDevice));
 
     dim3 blocks((bitmap->width+15)/16, (bitmap->height+15)/16);
     dim3 threads(16, 16);
-    kernel<<<blocks, threads>>>(*bitmap, d_objects, numObjects, *options);
+    kernel<<<blocks, threads>>>(*bitmap, d_objects, numObjects, d_lights, numLights, *options);
 
     CHECK_ERROR(cudaMemcpy(h_bitmap, d_bitmap, bitmap->width * bitmap->height * 3, cudaMemcpyDeviceToHost));
 
     CHECK_ERROR(cudaFree(d_bitmap));
+
+    for (int x = 0; x < numObjects; x++)
+        CHECK_ERROR(cudaFree(h_objects[x].materials));
     CHECK_ERROR(cudaFree(d_objects));
 
+    CHECK_ERROR(cudaFree(d_lights));
+
     bitmap->data = h_bitmap;
+
+    free(h_objects);
 }
 
 void checkError(cudaError_t error, const char *file, int line)

@@ -12,6 +12,7 @@ static const int EYE = 0;
 static const int REFLECT = 0x1;
 static const int INTERNAL_REFRACT = 0x2;
 static const int EXTERNAL_REFRACT = 0x4;
+static const double rhoAIR = 1.0;
 
 struct Bitmap
 {
@@ -41,10 +42,23 @@ struct BoundingSphere
     }
 };
 
+struct Material
+{
+    DoubleColor ka;
+    DoubleColor kd;
+    DoubleColor ks;
+    DoubleColor reflectivity;
+    DoubleColor refractivity;
+    double refractiveIndex;
+    double shiny;
+};
+
 struct Mesh
 {
+    int numMats;
     BoundingSphere boundingSphere;
     Double3D viewCenter;
+    Material *materials;
 };
 
 struct Ray
@@ -121,17 +135,29 @@ struct Ray
     }
 };
 
+struct LightCuda
+{
+    DoubleColor ambient;
+    DoubleColor diffuse;
+    DoubleColor specular;
+    Double3D viewPosition;
+};
+
 struct Options
 {
     bool spheresOnly;
     bool reflections;
     bool refractions;
+    bool cull;
+    bool shadows;
+    int maxRecursiveDepth;
 };
 
 __device__ DoubleColor trace(Ray ray, int numRecurs);
 __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
+__device__ bool traceLightRay(Ray ray);
 
-void cudaStart(Bitmap *bitmap, Mesh *h_objects, int h_numObjects, Options *h_options);
+void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options);
 void checkError(cudaError_t error, const char *file, int line);
 
 #endif // CUDAKERNEL_H

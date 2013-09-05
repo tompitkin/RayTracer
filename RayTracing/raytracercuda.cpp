@@ -27,14 +27,26 @@ void RayTracerCuda::start()
 
     int numObjects = theScene->objects.size();
     Mesh objects[numObjects];
-    loadObjects(objects, theScene);
+    loadObjects(objects);
+
+    int numLights = 0;
+    for (int x = 0; x < 8; x++)
+    {
+        if (theScene->lights->lights[x].lightSwitch == Lights::Light::ON)
+            numLights++;
+    }
+    LightCuda lights[numLights];
+    loadLights(lights);
 
     Options options;
     options.spheresOnly = rayTracer->spheresOnly;
     options.reflections = rayTracer->reflections;
     options.refractions = rayTracer->refractions;
+    options.cull = theScene->cull;
+    options.shadows = rayTracer->shadows;
+    options.maxRecursiveDepth = rayTracer->maxRecursiveDepth;
 
-    cudaStart(&bitmap, objects, numObjects, &options);
+    cudaStart(&bitmap, objects, numObjects, lights, numLights, &options);
 
     if (rayTracer->data != nullptr)
     {
@@ -44,14 +56,51 @@ void RayTracerCuda::start()
     rayTracer->data = bitmap.data;
 }
 
-void RayTracerCuda::loadObjects(Mesh *output, Scene *input)
+void RayTracerCuda::loadObjects(Mesh *output)
 {
-    for (int i = 0; i < (int)input->objects.size(); i++)
+    for (int i = 0; i < (int)theScene->objects.size(); i++)
     {
-        PMesh *theObj = input->objects.at(i).get();
+        PMesh *theObj = theScene->objects.at(i).get();
         output[i].boundingSphere = BoundingSphere(theObj->boundingSphere->center, theObj->boundingSphere->radius);
 
         output[i].viewCenter = theObj->viewCenter;
+
+        output[i].numMats = theObj->numMats;
+        output[i].materials = new Material[theObj->numMats];
+        for (int j = 0; j < theObj->numMats; j++)
+        {
+            output[i].materials[j].ka = theObj->materials[j].ka;
+            output[i].materials[j].kd = theObj->materials[j].kd;
+            output[i].materials[j].ks = theObj->materials[j].ks;
+            output[i].materials[j].reflectivity = theObj->materials[j].reflectivity;
+            output[i].materials[j].refractivity = theObj->materials[j].refractivity;
+            output[i].materials[j].refractiveIndex = theObj->materials[j].refractiveIndex;
+            output[i].materials[j].shiny = theObj->materials[j].shiny;
+        }
+    }
+}
+
+void RayTracerCuda::loadLights(LightCuda *output)
+{
+    int count = 0;
+    Lights::Light *curLight;
+    for (int i = 0; i < 8; i++)
+    {
+        if (theScene->lights->lights[i].lightSwitch == Lights::Light::ON)
+        {
+            curLight = &theScene->lights->lights[i];
+            output[count].ambient.r = curLight->ambient[0];
+            output[count].ambient.g = curLight->ambient[1];
+            output[count].ambient.b = curLight->ambient[2];
+            output[count].diffuse.r = curLight->diffuse[0];
+            output[count].diffuse.g = curLight->diffuse[1];
+            output[count].diffuse.b = curLight->diffuse[2];
+            output[count].specular.r = curLight->specular[0];
+            output[count].specular.g = curLight->specular[1];
+            output[count].specular.b = curLight->specular[2];
+            output[count].viewPosition = Double3D(curLight->position[0], curLight->position[1], curLight->position[2]).preMultiplyMatrix(theScene->camera->viewMat);
+            count++;
+        }
     }
 }
 
