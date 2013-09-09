@@ -80,59 +80,6 @@ struct Ray
         Ro = origin;
         flags = type;
     }
-
-    __device__ bool intersectSphere(Mesh *theObj, double *t)
-    {
-        const double EPS = 0.00001;
-        double t0=0.0, t1=0.0, A=0.0, B=0.0, C=0.0, discrim=0.0;
-        BoundingSphere *theSphere = &theObj->boundingSphere;
-        Double3D RoMinusSc = Ro.minus(theObj->viewCenter);
-        double fourAC = 0.0;
-
-        A = Rd.dot(Rd);
-        B = 2.0 * (Rd.dot(RoMinusSc));
-        C = RoMinusSc.dot(RoMinusSc) - theSphere->radiusSq;
-        fourAC = (4*A*C);
-
-        discrim = (B*B) - fourAC;
-
-        if (discrim < EPS)
-            return false;
-        else
-        {
-            t0 = ((-B) - sqrt(discrim))/(2.0*A);
-            t1 = ((-B) + sqrt(discrim))/(2.0*A);
-
-            if (t0 < EPS)
-            {
-                if (t1 < EPS)
-                {
-                    *t = 0.0;
-                    return false;
-                }
-                else
-                {
-                    *t = t1;
-                    return true;
-                }
-            }
-            else if (t1 < EPS)
-            {
-                *t = t0;
-                return true;
-            }
-            else if (t0 < t1)
-            {
-                *t = t0;
-                return true;
-            }
-            else
-            {
-                *t = t1;
-                return true;
-            }
-        }
-    }
 };
 
 struct LightCuda
@@ -156,6 +103,7 @@ struct Options
 __device__ DoubleColor trace(Ray ray, int numRecurs);
 __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
 __device__ bool traceLightRay(Ray ray);
+__device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t);
 
 void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options);
 void checkError(cudaError_t error, const char *file, int line);

@@ -51,7 +51,7 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
 
     for (int obj = 0; obj < numObjects; obj++)
     {
-        if (ray.intersectSphere(&objects[obj], &t))
+        if (intersectSphere(ray, &objects[obj], &t))
         {
             if (abs(t) < 0.00001)
                 continue;
@@ -252,8 +252,8 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
         rtnColor.plus(shadeColor);
         return rtnColor;
     }
-    else
-        return shadeColor;*/
+    else*/
+        return shadeColor;
 }
 
 __device__ bool traceLightRay(Ray ray)
@@ -261,7 +261,7 @@ __device__ bool traceLightRay(Ray ray)
     double t = 0.0;
     for (int obj = 0; obj < numObjects; obj++)
     {
-        if (ray.intersectSphere(&objects[obj], &t))
+        if (intersectSphere(ray, &objects[obj], &t))
         {
             if (abs(t) < 0.0001)
                 return false;
@@ -270,6 +270,59 @@ __device__ bool traceLightRay(Ray ray)
         }
     }
     return false;
+}
+
+__device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t)
+{
+    const double EPS = 0.00001;
+    double t0=0.0, t1=0.0, A=0.0, B=0.0, C=0.0, discrim=0.0;
+    BoundingSphere *theSphere = &theObj->boundingSphere;
+    Double3D RoMinusSc = ray.Ro.minus(theObj->viewCenter);
+    double fourAC = 0.0;
+
+    A = ray.Rd.dot(ray.Rd);
+    B = 2.0 * (ray.Rd.dot(RoMinusSc));
+    C = RoMinusSc.dot(RoMinusSc) - theSphere->radiusSq;
+    fourAC = (4*A*C);
+
+    discrim = (B*B) - fourAC;
+
+    if (discrim < EPS)
+        return false;
+    else
+    {
+        t0 = ((-B) - sqrt(discrim))/(2.0*A);
+        t1 = ((-B) + sqrt(discrim))/(2.0*A);
+
+        if (t0 < EPS)
+        {
+            if (t1 < EPS)
+            {
+                *t = 0.0;
+                return false;
+            }
+            else
+            {
+                *t = t1;
+                return true;
+            }
+        }
+        else if (t1 < EPS)
+        {
+            *t = t0;
+            return true;
+        }
+        else if (t0 < t1)
+        {
+            *t = t0;
+            return true;
+        }
+        else
+        {
+            *t = t1;
+            return true;
+        }
+    }
 }
 
 void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options)
