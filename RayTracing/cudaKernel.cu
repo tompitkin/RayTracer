@@ -69,6 +69,32 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
                     minNormal = Double3D(normal);
                 }
             }
+            else
+            {
+                for (int surf = 0; surf < objects[obj].numSurfs; surf++)
+                {
+                    for (int i =  0; i < (int)(objects[obj].surfaces[surf].numVerts / 3); i++)
+                    {
+                        HitRecord hrec;
+                        if (intersectTriangle(&ray, &objects[obj], objects[obj].surfaces[surf].verts[i*3], objects[obj].surfaces[surf].verts[(i*3)+1], objects[obj].surfaces[surf].verts[(i*3)+2], &hrec, false))
+                        {
+                            if (!(ray.flags == EYE && hrec.backfacing && options->cull) || ray.flags == REFLECT || ray.flags == EXTERNAL_REFRACT)
+                            {
+                                intersectDist = ray.Ro.distanceTo(hrec.intersectPoint);
+                                if (intersectDist < minDist)
+                                {
+                                    minDist = intersectDist;
+                                    minObj = &objects[obj];
+                                    minIntPt = hrec.intersectPoint;
+                                    minNormal = hrec.normal;
+                                    minMatIndex = objects[obj].surfaces[surf].material;
+                                    minBackfacing = hrec.backfacing;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     if (minObj != NULL)
@@ -325,6 +351,73 @@ __device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t)
     }
 }
 
+__device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3, HitRecord *hrec, bool cull)
+{
+    Double3D verts[3] = {theObj->vertArray[v1], theObj->vertArray[v2], theObj->vertArray[v3]};
+    Double3D edges[2];
+    Double3D vnorms[3] = {theObj->viewNormArray[v1], theObj->viewNormArray[v2], theObj->viewNormArray[v3]};
+    Double3D pvec, qvec, tvec;
+    double det, inv_det;
+    double EPSILON = 0.000001;
+
+    edges[0] = verts[1].minus(verts[0]);
+    edges[1] = verts[2].minus(verts[0]);
+    pvec = ray->Rd.cross(edges[1]);
+    det = edges[0].dot(pvec);
+    if(cull)
+    {
+        if (det < EPSILON)
+            return false;
+        tvec = ray->Ro.minus(verts[0]);
+        hrec->u = tvec.dot(pvec);
+        if (hrec->u < 0.0 || hrec->u > det)
+            return false;
+        qvec = tvec.cross(edges[0]);
+        hrec->v = ray->Rd.dot(qvec);
+        if (hrec->v < 0.0 || hrec->u + hrec->v > det)
+            return false;
+        hrec->t = edges[1].dot(qvec);
+        inv_det = 1.0/det;
+        hrec->t *= inv_det;
+        hrec->u *= inv_det;
+        hrec->v *= inv_det;
+    }
+    else
+    {
+        if (det > -EPSILON && det < EPSILON)
+            return false;
+        inv_det = 1.0/det;
+        tvec = ray->Ro.minus(verts[0]);
+        hrec->u = tvec.dot(pvec) * inv_det;
+        if (hrec->u < 0.0 || hrec->u > 1.0)
+            return false;
+        qvec = tvec.cross(edges[0]);
+        hrec->v = ray->Rd.dot(qvec) * inv_det;
+        if (hrec->v < 0.0 || hrec->u + hrec->v > 1.0)
+            return false;
+        if (det < -EPSILON)
+            hrec->backfacing = true;
+        else
+            hrec->backfacing = false;
+        hrec->t = edges[1].dot(qvec) * inv_det;
+    }
+    if (hrec->t < EPSILON)
+        return false;
+    else
+    {
+        hrec->intersectPoint = Double3D((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
+        double w = 1.0 - hrec->u - hrec->v;
+        Double3D sumNorms;
+        vnorms[0] = vnorms[0].sMult(w);
+        vnorms[1] = vnorms[1].sMult(hrec->u);
+        vnorms[2] = vnorms[2].sMult(hrec->v);
+        sumNorms = vnorms[0].plus(vnorms[1].plus(vnorms[2]));
+        hrec->normal = sumNorms;
+        hrec->normal.unitize();
+        return true;
+    }
+}
+
 void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options)
 {
     unsigned char *d_bitmap;
@@ -338,13 +431,31 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
 
     bitmap->data = d_bitmap;
 
-    h_objects = (Mesh *)malloc(sizeof(Mesh) *  numObjects);
+    h_objects = (Mesh *)malloc(sizeof(Mesh) * numObjects);
     memcpy(h_objects, objects, sizeof(Mesh) * numObjects);
 
     for (int x = 0; x < numObjects; x++)
     {
+        h_objects[x].surfaces = new Surface[h_objects[x].numSurfs];
+        memcpy(h_objects[x].surfaces, objects[x].surfaces, sizeof(Surface) * objects[x].numSurfs);
+        for (int y = 0; y < h_objects[x].numSurfs; y++)
+        {
+            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].verts, sizeof(int) * h_objects[x].surfaces[y].numVerts));
+            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].verts, objects[x].surfaces[y].verts, sizeof(int) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
+            delete [] objects[x].surfaces[y].verts;
+            objects[x].surfaces[y].verts = h_objects[x].surfaces[y].verts;
+            h_objects[x].surfaces[y].verts = NULL;
+        }
+
+        delete [] h_objects[x].surfaces;
+        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].surfaces, sizeof(Surface) * h_objects[x].numSurfs));
+        CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces, objects[x].surfaces, sizeof(Surface) * h_objects[x].numSurfs, cudaMemcpyHostToDevice));
         CHECK_ERROR(cudaMalloc((void **)&h_objects[x].materials, sizeof(Material) * h_objects[x].numMats));
         CHECK_ERROR(cudaMemcpy(h_objects[x].materials, objects[x].materials, sizeof(Material) * h_objects[x].numMats, cudaMemcpyHostToDevice));
+        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].vertArray, sizeof(Double3D) * h_objects[x].numVerts));
+        CHECK_ERROR(cudaMemcpy(h_objects[x].vertArray, objects[x].vertArray, sizeof(Double3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
+        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].viewNormArray, sizeof(Double3D) * h_objects[x].numVerts));
+        CHECK_ERROR(cudaMemcpy(h_objects[x].viewNormArray, objects[x].viewNormArray, sizeof(Double3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
     }
 
     CHECK_ERROR(cudaMalloc((void**)&d_objects, sizeof(Mesh) * numObjects));
@@ -359,21 +470,34 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
 
     CHECK_ERROR(cudaMemcpy(h_bitmap, d_bitmap, bitmap->width * bitmap->height * 3, cudaMemcpyDeviceToHost));
 
-    CHECK_ERROR(cudaFree(d_bitmap));
+    CHECK_ERROR_FREE(cudaFree(d_bitmap), &d_bitmap);
 
     for (int x = 0; x < numObjects; x++)
-        CHECK_ERROR(cudaFree(h_objects[x].materials));
-    CHECK_ERROR(cudaFree(d_objects));
+    {
+        for (int y = 0; y < h_objects[x].numSurfs; y++)
+        {
+            CHECK_ERROR(cudaFree(objects[x].surfaces[y].verts));
+            objects[x].surfaces[y].verts = NULL;
+        }
+        CHECK_ERROR_FREE(cudaFree(h_objects[x].surfaces), &h_objects[x].surfaces);
+        CHECK_ERROR_FREE(cudaFree(h_objects[x].materials), &h_objects[x].materials);
+        CHECK_ERROR_FREE(cudaFree(h_objects[x].vertArray), &h_objects[x].vertArray);
+        CHECK_ERROR_FREE(cudaFree(h_objects[x].viewNormArray), &h_objects[x].viewNormArray);
+    }
+    CHECK_ERROR_FREE(cudaFree(d_objects), &d_objects);
 
-    CHECK_ERROR(cudaFree(d_lights));
+    CHECK_ERROR_FREE(cudaFree(d_lights), &d_lights);
 
     bitmap->data = h_bitmap;
 
     free(h_objects);
 }
 
-void checkError(cudaError_t error, const char *file, int line)
+void checkError(cudaError_t error, const char *file, int line, void **nullObject)
 {
+    if (nullObject != NULL)
+        nullObject = NULL;
+
     if (error != cudaSuccess)
     {
         printf("%s in %s at line %d\n", cudaGetErrorString(error), file, line);
