@@ -1,7 +1,7 @@
 #include "cudaKernel.h"
 #include "stdio.h"
 
-__device__ int numObjects;
+/*__device__ int numObjects;
 __device__ Mesh *objects;
 __device__ int numLights;
 __device__ LightCuda * lights;
@@ -189,7 +189,7 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
         shadeColor.plus(specComponent);
     }
     if (numRecurs >= options->maxRecursiveDepth)
-        return shadeColor;
+        return shadeColor;*/
 
     /*if (refractions)
     {
@@ -279,7 +279,7 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
         return rtnColor;
     }
     else*/
-        return shadeColor;
+        /*return shadeColor;
 }
 
 __device__ bool traceLightRay(Ray ray)
@@ -296,7 +296,7 @@ __device__ bool traceLightRay(Ray ray)
         }
     }
     return false;
-}
+}*/
 
 __device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t)
 {
@@ -420,11 +420,15 @@ __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3
 
 void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options)
 {
+    int numRays;
     unsigned char *d_bitmap;
     unsigned char *h_bitmap;
+    unsigned char *layers[options->maxRecursiveDepth + 1];
     Mesh *d_objects;
     Mesh *h_objects;
     LightCuda *d_lights;
+    Ray *rays;
+    Intersect *intersects;
 
     CHECK_ERROR(cudaMalloc((void**)&d_bitmap, bitmap->width * bitmap->height * 3));
     h_bitmap = (unsigned char*)malloc(sizeof(unsigned char) * (bitmap->width * bitmap->height * 3));
@@ -464,9 +468,24 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
     CHECK_ERROR(cudaMalloc((void**)&d_lights, sizeof(LightCuda) * numLights));
     CHECK_ERROR(cudaMemcpy(d_lights, lights, sizeof(LightCuda) * numLights, cudaMemcpyHostToDevice));
 
+    numRays = bitmap->width * bitmap->height;
+    CHECK_ERROR(cudaMalloc((void**)&rays, sizeof(Ray) * numRays));
+
+    CHECK_ERROR(cudaMalloc((void**)&intersects, sizeof(Intersect) * numRays));
+
+    for(int i = 0; i <= options->maxRecursiveDepth; i++)
+        CHECK_ERROR(cudaMalloc((void**)&layers[i], sizeof(unsigned char) * (bitmap->width * bitmap->height * 4)));
+
     dim3 blocks((bitmap->width+15)/16, (bitmap->height+15)/16);
     dim3 threads(16, 16);
-    kernel<<<blocks, threads>>>(*bitmap, d_objects, numObjects, d_lights, numLights, *options);
+    //kernel<<<blocks, threads>>>(*bitmap, d_objects, numObjects, d_lights, numLights, *options);
+    for(int pass = 0; pass <= options->maxRecursiveDepth; pass++)
+    {
+        baseKrnl<<<blocks, threads>>>(rays, numRays, *bitmap);
+        intersectKrnl<<<blocks, threads>>>(rays, numRays, d_objects, numObjects, options->spheresOnly, intersects, options->cull);
+        shadeKrnl<<<blocks, threads>>>(rays, numRays, intersects, layers[pass], d_lights, numLights, *options, pass == options->maxRecursiveDepth ? true : false);
+        composeKrnl<<<blocks, threads>>>(*bitmap, layers[pass], pass == options->maxRecursiveDepth ? true : false);
+    }
 
     CHECK_ERROR(cudaMemcpy(h_bitmap, d_bitmap, bitmap->width * bitmap->height * 3, cudaMemcpyDeviceToHost));
 
@@ -488,6 +507,13 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
 
     CHECK_ERROR_FREE(cudaFree(d_lights), &d_lights);
 
+    CHECK_ERROR_FREE(cudaFree(rays), &rays);
+
+    CHECK_ERROR_FREE(cudaFree(intersects), &intersects);
+
+    for(int i = 0; i <= options->maxRecursiveDepth; i++)
+        CHECK_ERROR_FREE(cudaFree(layers[i]), &layers[i]);
+
     bitmap->data = h_bitmap;
 
     free(h_objects);
@@ -503,4 +529,189 @@ void checkError(cudaError_t error, const char *file, int line, void **nullObject
         printf("%s in %s at line %d\n", cudaGetErrorString(error), file, line);
         exit(EXIT_FAILURE);
     }
+}
+
+__global__ void baseKrnl(Ray *rays, int numRays, Bitmap bitmap)
+{
+    //Map from threadIdx & blockIdx to pixel position
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * blockDim.x * gridDim.x;
+
+    if (offset < (bitmap.width * bitmap.height))
+    {
+        Double3D point(bitmap.firstPixel);
+        point.x += (offset % bitmap.width) * bitmap.pixelWidth;
+        point.y += ((offset - x) / bitmap.width) * bitmap.pixelHeight;
+        rays[offset] = Ray(point.getUnit(), Double3D(), EYE);
+    }
+}
+
+__global__ void intersectKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool cull)
+{
+    //Map from threadIdx & blockIdx to pixel position
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * blockDim.x * gridDim.x;
+
+    if (offset < numRays)
+    {
+        double t = 0.0;
+        double intersectDist = 0.0;
+        double minDist = 100000000.0;
+        int minMatIndex = 0;
+        bool minBackfacing = false;
+        Mesh *minObj = NULL;
+        Double3D minIntPt;
+        Double3D minNormal;
+        Double3D intersectPt;
+        Double3D normal;
+        Double3D origin;
+
+        for (int obj = 0; obj < numObjects; obj++)
+        {
+            if (intersectSphere(rays[offset], &objects[obj], &t))
+            {
+                if (abs(t) < 0.0001)
+                    continue;
+                if (spheresOnly)
+                {
+                    intersectPt = Double3D((rays[offset].Ro.x+(rays[offset].Rd.x*t)), (rays[offset].Ro.y+(rays[offset].Rd.y*t)), (rays[offset].Ro.z+(rays[offset].Rd.z*t)));
+                    normal = (intersectPt.minus(objects[obj].viewCenter).sDiv(objects[obj].boundingSphere.radius));
+                    normal.unitize();
+                    intersectDist = origin.distanceTo(intersectPt);
+                    if (intersectDist < minDist)
+                    {
+                        minDist = intersectDist;
+                        minObj = &objects[obj];
+                        minIntPt = Double3D(intersectPt);
+                        minNormal = Double3D(normal);
+                    }
+                }
+                else
+                {
+                    for (int surf = 0; surf < objects[obj].numSurfs; surf++)
+                    {
+                        for (int i =  0; i < (int)(objects[obj].surfaces[surf].numVerts / 3); i++)
+                        {
+                            HitRecord hrec;
+                            if (intersectTriangle(&rays[offset], &objects[obj], objects[obj].surfaces[surf].verts[i*3], objects[obj].surfaces[surf].verts[(i*3)+1], objects[obj].surfaces[surf].verts[(i*3)+2], &hrec, false))
+                            {
+                                if (!(rays[offset].flags == EYE && hrec.backfacing && cull) || rays[offset].flags == REFLECT)
+                                {
+                                    intersectDist = rays[offset].Ro.distanceTo(hrec.intersectPoint);
+                                    if (intersectDist < minDist)
+                                    {
+                                        minDist = intersectDist;
+                                        minObj = &objects[obj];
+                                        minIntPt = hrec.intersectPoint;
+                                        minNormal = hrec.normal;
+                                        minMatIndex = objects[obj].surfaces[surf].material;
+                                        minBackfacing = hrec.backfacing;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        intrs[offset] = Intersect(minMatIndex, minBackfacing, minObj, minIntPt, minNormal);
+    }
+}
+
+__global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options, bool finalPass)
+{
+    //Map from threadIdx & blockIdx to pixel position
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * blockDim.x * gridDim.x;
+
+    if (offset < numRays && intrs[offset].theObj != NULL)
+    {
+        int materialIndex = intrs[offset].materialIndex;
+        Mesh *theObj = intrs[offset].theObj;
+        DoubleColor Ka;
+        DoubleColor Kd;
+        DoubleColor Ks;
+        DoubleColor shadeColor;
+        Double3D point = intrs[offset].point;
+        Double3D trueNormal;
+        Double3D inv_normal = intrs[offset].normal.sMult(-1.0);
+
+        layer[offset*4 + 3] = (int) (theObj->materials[materialIndex].reflectivity.r * 255);
+
+        Ka = theObj->materials[materialIndex].ka;
+        Kd = theObj->materials[materialIndex].kd;
+        Ks = theObj->materials[materialIndex].ks;
+
+        Double3D R;
+        Double3D L;
+        Double3D V;
+
+        shadeColor.plus(lights[0].ambient);
+        V = Double3D(0.0, 0.0, 0.0).minus(point);
+        V.unitize();
+
+        if (rays[offset].flags == EYE && intrs[offset].backFacing && !options.cull)
+            trueNormal = inv_normal;
+        else
+            trueNormal = intrs[offset].normal;
+
+        LightCuda *curLight;
+        for (int i = 0; i < numLights; i++)
+        {
+            curLight = &lights[i];
+
+            L = curLight->viewPosition.minus(point);
+            L.unitize();
+            double LdotN = L.dot(trueNormal);
+            LdotN = max(0.0, LdotN);
+            DoubleColor diffComponent(0.0, 0.0, 0.0, 1.0);
+            if (LdotN > 0.0)
+                diffComponent.plus(DoubleColor(curLight->diffuse.r*Kd.r*LdotN, curLight->diffuse.g*Kd.g*LdotN, curLight->diffuse.b*Kd.b*LdotN, 1.0));
+            shadeColor.plus(diffComponent);
+
+            Double3D Pr = trueNormal.sMult(LdotN);
+            Double3D sub = Pr.sMult(2.0);
+            R = L.sMult(-1.0).plus(sub);
+            R.unitize();
+            double RdotV = R.dot(V);
+            RdotV = max(0.0, RdotV);
+            double cosPhiPower = 0.0;
+            if (RdotV > 0.0)
+                cosPhiPower = pow(RdotV, theObj->materials[materialIndex].shiny);
+            DoubleColor specComponent(curLight->specular.r*Ks.r*cosPhiPower, curLight->specular.g*Ks.g*cosPhiPower, curLight->specular.b*Ks.b*cosPhiPower, 1.0);
+            shadeColor.plus(specComponent);
+        }
+        if (finalPass)
+        {
+            layer[offset*4 + 0] = (int) (shadeColor.r * 255);
+            layer[offset*4 + 1] = (int) (shadeColor.g * 255);
+            layer[offset*4 + 2] = (int) (shadeColor.b * 255);
+        }
+    }
+}
+
+__global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass)
+{
+    //Map from threadIdx & blockIdx to pixel position
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int offset = x + y * blockDim.x * gridDim.x;
+
+    if (offset < (bitmap.width * bitmap.height))
+    {
+        if (finalPass)
+        {
+            bitmap.data[offset*3 + 0] = layer[offset*4 + 0];
+            bitmap.data[offset*3 + 1] = layer[offset*4 + 1];
+            bitmap.data[offset*3 + 2] = layer[offset*4 + 2];
+        }
+        else
+        {
+
+        }
+    }
+
 }

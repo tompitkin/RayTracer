@@ -97,6 +97,13 @@ struct Ray
     Double3D Ro;
     int flags;
 
+    __device__ Ray()
+    {
+        Rd = Double3D();
+        Ro = Double3D();
+        flags = 0;
+    }
+
     __device__ Ray(Double3D dir, Double3D origin)
     {
         Rd = dir;
@@ -145,11 +152,38 @@ struct HitRecord
     }
 };
 
-__device__ DoubleColor trace(Ray ray, int numRecurs);
+struct Intersect
+{
+    int materialIndex;
+    bool backFacing;
+    Mesh *theObj;
+    Double3D point;
+    Double3D normal;
+
+    __device__ Intersect()
+    {
+        theObj = NULL;
+    }
+
+    __device__ Intersect(int matIndex, bool backFacing, Mesh *obj, Double3D point, Double3D normal)
+    {
+        materialIndex = matIndex;
+        this->backFacing = backFacing;
+        theObj = obj;
+        this->point = point;
+        this->normal = normal;
+    }
+};
+
+/*__device__ DoubleColor trace(Ray ray, int numRecurs);
 __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
-__device__ bool traceLightRay(Ray ray);
+__device__ bool traceLightRay(Ray ray);*/
 __device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t);
 __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3, HitRecord *hrec, bool cull);
+__global__ void baseKrnl(Ray *rays, int numRays, Bitmap bitmap);
+__global__ void intersectKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool cull);
+__global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options, bool finalPass);
+__global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass);
 
 void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options);
 void checkError(cudaError_t error, const char *file, int line, void **nullObject = NULL);
