@@ -3,8 +3,9 @@
 
 #include <cuda_runtime.h>
 #include <stdio.h>
-#include "MatrixManipulation/double3d.h"
+#include <cmath>
 #include "Utilities/doublecolor.h"
+#include "MatrixManipulation/double3d.h"
 
 #define CHECK_ERROR(err) checkError(err, __FILE__, __LINE__)
 #define CHECK_ERROR_FREE(err, nullObject) checkError(err, __FILE__, __LINE__, (void**)nullObject);
@@ -13,29 +14,115 @@ static const int EYE = 0;
 static const int REFLECT = 0x1;
 static const int INTERNAL_REFRACT = 0x2;
 static const int EXTERNAL_REFRACT = 0x4;
-static const double rhoAIR = 1.0;
+static const float rhoAIR = 1.0;
+
+struct Float3D
+{
+    float x;
+    float y;
+    float z;
+
+    __device__ Float3D(){};
+
+    /*__device__ Float3D()
+    {
+        x = 0.0f;
+        y = 0.0f;
+        z = 0.0f;
+    }*/
+
+    __device__ Float3D(float nX, float nY, float nZ)
+    {
+        x = nX;
+        y = nY;
+        z = nZ;
+    }
+
+    __device__ Float3D(Double3D *from)
+    {
+        x = (float)from->x;
+        y = (float)from->y;
+        z = (float)from->z;
+    }
+
+    __device__ Float3D minus(Float3D t1)
+    {
+        return Float3D(x - t1.x, y - t1.y, z - t1.z);
+    }
+
+    __device__ Float3D plus(Float3D t1)
+    {
+        return Float3D(x + t1.x, y + t1.y, z + t1.z);
+    }
+
+    __device__ Float3D cross(Float3D t1)
+    {
+        return Float3D((y)*(t1.z)-(t1.y)*(z), (z)*(t1.x)-(t1.z)*(x), (x)*(t1.y)-(t1.x)*(y));
+    }
+
+    __device__ Float3D sDiv(float s)
+    {
+        return Float3D(x/s, y/x, z/s);
+    }
+
+    __device__ Float3D sMult(float s)
+    {
+        return Float3D(s*x, s*y, s*z);
+    }
+
+    __device__ Float3D getUnit()
+    {
+        float s = sqrt(x*x+y*y+z*z);
+        if (s > 0)
+            return Float3D( x/s, y/s, z/s);
+        return Float3D();
+    }
+
+    __device__ float dot(Float3D t1)
+    {
+        return (x)*(t1.x) + (y)*(t1.y) + (z)*(t1.z);
+    }
+
+    __device__ float distanceTo(Float3D point)
+    {
+        Float3D newVect = this->minus(point);
+        return (float)sqrt(newVect.x * newVect.x + newVect.y * newVect.y + newVect.z * newVect.z);
+    }
+
+    __device__ void unitize()
+    {
+        float s = sqrt(x*x+y*y+z*z);
+        if (s > 0)
+        {
+            x = x/s;
+            y = y/s;
+            z = z/s;
+        }
+    }
+};
 
 struct Bitmap
 {
     unsigned char *data;
-    double pixelWidth, pixelHeight;
+    float pixelWidth, pixelHeight;
     int width, height;
-    Double3D firstPixel;
+    Float3D firstPixel;
 };
 
 struct BoundingSphere
 {
-    Double3D center;
-    double radius;
-    double radiusSq;
+    Float3D center;
+    float radius;
+    float radiusSq;
 
-    BoundingSphere()
+    __device__ BoundingSphere()
     {
+        center = Float3D(0.0, 0.0, 0.0);
         radius = 0;
         radiusSq = 0;
     }
 
-    BoundingSphere(Double3D center, double radius)
+    BoundingSphere(Float3D center, float radius)
     {
         this->center = center;
         this->radius = radius;
@@ -50,8 +137,8 @@ struct Material
     DoubleColor ks;
     DoubleColor reflectivity;
     DoubleColor refractivity;
-    double refractiveIndex;
-    double shiny;
+    float refractiveIndex;
+    float shiny;
 };
 
 struct Surface
@@ -72,11 +159,11 @@ struct Mesh
     int numSurfs;
     int numVerts;
     BoundingSphere boundingSphere;
-    Double3D viewCenter;
+    Float3D viewCenter;
     Material *materials;
     Surface *surfaces;
-    Double3D *vertArray;
-    Double3D *viewNormArray;
+    Float3D *vertArray;
+    Float3D *viewNormArray;
 
     ~Mesh()
     {
@@ -93,25 +180,27 @@ struct Mesh
 
 struct Ray
 {
-    Double3D Rd;
-    Double3D Ro;
+    Float3D Rd;
+    Float3D Ro;
     int flags;
 
-    __device__ Ray()
-    {
-        Rd = Double3D();
-        Ro = Double3D();
-        flags = 0;
-    }
+    __device__ Ray(){};
 
-    __device__ Ray(Double3D dir, Double3D origin)
+    /*__device__ Ray()
+    {
+        Rd = Float3D();
+        Ro = Float3D();
+        flags = 0;
+    }*/
+
+    __device__ Ray(Float3D dir, Float3D origin)
     {
         Rd = dir;
         Ro = origin;
         flags = 0;
     }
 
-    __device__ Ray(Double3D dir, Double3D origin, int type)
+    __device__ Ray(Float3D dir, Float3D origin, int type)
     {
         Rd = dir;
         Ro = origin;
@@ -124,7 +213,7 @@ struct LightCuda
     DoubleColor ambient;
     DoubleColor diffuse;
     DoubleColor specular;
-    Double3D viewPosition;
+    Float3D viewPosition;
 };
 
 struct Options
@@ -139,17 +228,9 @@ struct Options
 
 struct HitRecord
 {
-    double t, u, v;
+    float t, u, v;
     bool backfacing;
-    Double3D intersectPoint, normal;
-
-    __device__ HitRecord()
-    {
-        t = 0.0;
-        u = 0.0;
-        v = 0.0;
-        backfacing = false;
-    }
+    Float3D intersectPoint, normal;
 };
 
 struct Intersect
@@ -157,15 +238,15 @@ struct Intersect
     int materialIndex;
     bool backFacing;
     Mesh *theObj;
-    Double3D point;
-    Double3D normal;
+    Float3D point;
+    Float3D normal;
 
     __device__ Intersect()
     {
         theObj = NULL;
     }
 
-    __device__ Intersect(int matIndex, bool backFacing, Mesh *obj, Double3D point, Double3D normal)
+    __device__ Intersect(int matIndex, bool backFacing, Mesh *obj, Float3D point, Float3D normal)
     {
         materialIndex = matIndex;
         this->backFacing = backFacing;
@@ -178,7 +259,7 @@ struct Intersect
 /*__device__ DoubleColor trace(Ray ray, int numRecurs);
 __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
 __device__ bool traceLightRay(Ray ray);*/
-__device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t);
+__device__ bool intersectSphere(Ray *ray, BoundingSphere *theSphere, Float3D viewCenter, float *t);
 __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3, HitRecord *hrec, bool cull);
 __global__ void baseKrnl(Ray *rays, int numRays, Bitmap bitmap);
 __global__ void intersectKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool cull);

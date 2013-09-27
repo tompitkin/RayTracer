@@ -21,7 +21,7 @@ void RayTracerCuda::start()
     bitmap.height = theScene->camera->getViewportHeight();
     bitmap.pixelWidth = theScene->camera->getWindowWidth() / bitmap.width;
     bitmap.pixelHeight = theScene->camera->getWindowHeight() / bitmap.height;
-    bitmap.firstPixel = Double3D(theScene->camera->windowLeft + bitmap.pixelWidth / 2, theScene->camera->windowBottom + bitmap.pixelHeight / 2, -theScene->camera->near);
+    bitmap.firstPixel = Float3D(theScene->camera->windowLeft + bitmap.pixelWidth / 2, theScene->camera->windowBottom + bitmap.pixelHeight / 2, -theScene->camera->near);
 
     doViewTrans();
 
@@ -61,9 +61,9 @@ void RayTracerCuda::loadObjects(Mesh *output)
     for (int i = 0; i < (int)theScene->objects.size(); i++)
     {
         PMesh *theObj = theScene->objects.at(i).get();
-        output[i].boundingSphere = BoundingSphere(theObj->boundingSphere->center, theObj->boundingSphere->radius);
+        output[i].boundingSphere = BoundingSphere(Float3D(&theObj->boundingSphere->center), theObj->boundingSphere->radius);
 
-        output[i].viewCenter = theObj->viewCenter;
+        output[i].viewCenter = Float3D(&theObj->viewCenter);
 
         output[i].numMats = theObj->numMats;
         output[i].materials = new Material[theObj->numMats];
@@ -81,13 +81,13 @@ void RayTracerCuda::loadObjects(Mesh *output)
         output[i].numSurfs = theObj->numSurf;
         output[i].numVerts = theObj->numVerts;
         output[i].surfaces = new Surface[theObj->numSurf];
-        output[i].vertArray = new Double3D[theObj->numVerts];
-        output[i].viewNormArray = new Double3D[theObj->numVerts];
+        output[i].vertArray = new Float3D[theObj->numVerts];
+        output[i].viewNormArray = new Float3D[theObj->numVerts];
 
         for (int vert = 0; vert < theObj->numVerts; vert++)
         {
-            output[i].vertArray[vert] = theObj->vertArray.at(vert)->viewPos;
-            output[i].viewNormArray[vert] = theObj->viewNormArray.at(vert);
+            output[i].vertArray[vert] = Float3D(&theObj->vertArray.at(vert)->viewPos);
+            output[i].viewNormArray[vert] = Float3D(&theObj->viewNormArray.at(vert));
         }
 
         int surfCount = 0, vertCount = 0;
@@ -126,7 +126,8 @@ void RayTracerCuda::loadLights(LightCuda *output)
             output[count].specular.r = curLight->specular[0];
             output[count].specular.g = curLight->specular[1];
             output[count].specular.b = curLight->specular[2];
-            output[count].viewPosition = Double3D(curLight->position[0], curLight->position[1], curLight->position[2]).preMultiplyMatrix(theScene->camera->viewMat);
+            Double3D viewPos = Double3D(curLight->position[0], curLight->position[1], curLight->position[2]).preMultiplyMatrix(theScene->camera->viewMat);
+            output[count].viewPosition = Float3D(&viewPos);
             count++;
         }
     }

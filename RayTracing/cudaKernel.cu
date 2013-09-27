@@ -22,10 +22,10 @@ __global__ void kernel(Bitmap bitmap, Mesh *d_objects, int d_numObjects, LightCu
         lights = d_lights;
         options = &d_options;
 
-        Double3D point(bitmap.firstPixel);
+        Float3D point(bitmap.firstPixel);
         point.x += (offset % bitmap.width) * bitmap.pixelWidth;
         point.y += ((offset - x) / bitmap.width) * bitmap.pixelHeight;
-        Ray ray(point.getUnit(), Double3D(), EYE);
+        Ray ray(point.getUnit(), Float3D(), EYE);
 
         DoubleColor rgb = trace(ray, 0);
 
@@ -43,11 +43,11 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
     int minMatIndex = 0;
     bool minBackfacing = false;
     Mesh *minObj = NULL;
-    Double3D minIntPt;
-    Double3D minNormal;
-    Double3D intersectPt;
-    Double3D normal;
-    Double3D origin;
+    Float3D minIntPt;
+    Float3D minNormal;
+    Float3D intersectPt;
+    Float3D normal;
+    Float3D origin;
 
     for (int obj = 0; obj < numObjects; obj++)
     {
@@ -57,7 +57,7 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
                 continue;
             if (options->spheresOnly)
             {
-                intersectPt = Double3D((ray.Ro.x+(ray.Rd.x*t)), (ray.Ro.y+(ray.Rd.y*t)), (ray.Ro.z+(ray.Rd.z*t)));
+                intersectPt = Float3D((ray.Ro.x+(ray.Rd.x*t)), (ray.Ro.y+(ray.Rd.y*t)), (ray.Ro.z+(ray.Rd.z*t)));
                 normal = (intersectPt.minus(objects[obj].viewCenter).sDiv(objects[obj].boundingSphere.radius));
                 normal.unitize();
                 intersectDist = origin.distanceTo(intersectPt);
@@ -65,8 +65,8 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
                 {
                     minDist = intersectDist;
                     minObj = &objects[obj];
-                    minIntPt = Double3D(intersectPt);
-                    minNormal = Double3D(normal);
+                    minIntPt = Float3D(intersectPt);
+                    minNormal = Float3D(normal);
                 }
             }
             else
@@ -107,7 +107,7 @@ __device__ DoubleColor trace(Ray ray, int numRecurs)
     }
 }
 
-__device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs)
+__device__ DoubleColor shade(Mesh *theObj, Float3D point, Float3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs)
 {
     DoubleColor shadeColor;
     DoubleColor reflColor;
@@ -115,8 +115,8 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
     DoubleColor Ka;
     DoubleColor Kd;
     DoubleColor Ks;
-    Double3D inv_normal = normal.sMult(-1.0);
-    Double3D trueNormal;
+    Float3D inv_normal = normal.sMult(-1.0);
+    Float3D trueNormal;
     bool reflections;
     bool refractions;
     double reflectivity;
@@ -134,13 +134,13 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
     Kd = theObj->materials[materialIndex].kd;
     Ks = theObj->materials[materialIndex].ks;
 
-    Double3D R;
-    Double3D L;
-    Double3D V;
+    Float3D R;
+    Float3D L;
+    Float3D V;
 
     shadeColor.plus(lights[0].ambient);
 
-    V = Double3D(0.0, 0.0, 0.0).minus(point);
+    V = Float3D(0.0, 0.0, 0.0).minus(point);
     V.unitize();
 
     if (ray.flags == EYE && backFacing && !options->cull)
@@ -158,9 +158,9 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
 
         if(options->shadows)
         {
-            Double3D Rd(curLight->viewPosition.minus(point));
+            Float3D Rd(curLight->viewPosition.minus(point));
             Rd.unitize();
-            Ray shadowRay = Ray(Double3D(Rd), Double3D(point));
+            Ray shadowRay = Ray(Float3D(Rd), Float3D(point));
             if (traceLightRay(shadowRay))
                 obstructed = true;
         }
@@ -176,8 +176,8 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
             diffComponent.plus(DoubleColor(curLight->diffuse.r*Kd.r*LdotN, curLight->diffuse.g*Kd.g*LdotN, curLight->diffuse.b*Kd.b*LdotN, 1.0));
         shadeColor.plus(diffComponent);
 
-        Double3D Pr = trueNormal.sMult(LdotN);
-        Double3D sub = Pr.sMult(2.0);
+        Float3D Pr = trueNormal.sMult(LdotN);
+        Float3D sub = Pr.sMult(2.0);
         R = L.sMult(-1.0).plus(sub);
         R.unitize();
         double RdotV = R.dot(V);
@@ -194,24 +194,24 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
     /*if (refractions)
     {
         double rhoNew, rhoOld;
-        Double3D norm;
+        Float3D norm;
         if (ray.flags == INTERNAL_REFRACT)
         {
             rhoOld = theObj->materials[materialIndex].refractiveIndex;
             rhoNew = rhoAIR;
-            norm = Double3D(inv_normal);
+            norm = Float3D(inv_normal);
         }
         else
         {
             rhoNew = theObj->materials[materialIndex].refractiveIndex;
             rhoOld = rhoAIR;
-            norm = Double3D(normal);
+            norm = Float3D(normal);
         }
         double rhoOldSq = rhoOld * rhoOld;
         double rhoNewSq = rhoNew * rhoNew;
-        Double3D d = ray.Rd;
+        Float3D d = ray.Rd;
         double dDotn = d.dot(norm);
-        Double3D term1 = d.minus(norm.sMult(dDotn)).sMult(rhoOld);
+        Float3D term1 = d.minus(norm.sMult(dDotn)).sMult(rhoOld);
         term1 = term1.sDiv(rhoNew);
         double sqrtOp = 1.0 - ((rhoOldSq*(1.0 - dDotn * dDotn))/rhoNewSq);
         if (sqrtOp < 0.0)
@@ -223,10 +223,10 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
         else
         {
             double root = sqrt(sqrtOp);
-            Double3D term2 = norm.sMult(root);
-            Double3D t = term1.minus(term2);
+            Float3D term2 = norm.sMult(root);
+            Float3D t = term1.minus(term2);
             t.unitize();
-            Ray newRay = Ray(Double3D(), Double3D());
+            Ray newRay = Ray(Float3D(), Float3D());
             if (ray.flags == INTERNAL_REFRACT)
                 newRay = Ray(t, point, EXTERNAL_REFRACT);
             else
@@ -237,9 +237,9 @@ __device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int 
 
     if (reflections)
     {
-        Double3D Pr = trueNormal.sMult(ray.Rd.dot(trueNormal));
-        Double3D sub = Pr.sMult(2.0);
-        Double3D refVect = ray.Rd.minus(sub);
+        Float3D Pr = trueNormal.sMult(ray.Rd.dot(trueNormal));
+        Float3D sub = Pr.sMult(2.0);
+        Float3D refVect = ray.Rd.minus(sub);
         refVect.unitize();
 
         Ray reflRay = Ray(refVect, point, REFLECT);
@@ -298,16 +298,15 @@ __device__ bool traceLightRay(Ray ray)
     return false;
 }*/
 
-__device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t)
+__device__ bool intersectSphere(Ray *ray, BoundingSphere *theSphere, Float3D viewCenter, float *t)
 {
-    const double EPS = 0.00001;
-    double t0=0.0, t1=0.0, A=0.0, B=0.0, C=0.0, discrim=0.0;
-    BoundingSphere *theSphere = &theObj->boundingSphere;
-    Double3D RoMinusSc = ray.Ro.minus(theObj->viewCenter);
-    double fourAC = 0.0;
+    const float EPS = 0.00001;
+    float t0=0.0, t1=0.0, A=0.0, B=0.0, C=0.0, discrim=0.0;
+    Float3D RoMinusSc = ray->Ro.minus(viewCenter);
+    float fourAC = 0.0;
 
-    A = ray.Rd.dot(ray.Rd);
-    B = 2.0 * (ray.Rd.dot(RoMinusSc));
+    A = ray->Rd.dot(ray->Rd);
+    B = 2.0 * (ray->Rd.dot(RoMinusSc));
     C = RoMinusSc.dot(RoMinusSc) - theSphere->radiusSq;
     fourAC = (4*A*C);
 
@@ -353,12 +352,12 @@ __device__ bool intersectSphere(Ray ray, Mesh *theObj, double *t)
 
 __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3, HitRecord *hrec, bool cull)
 {
-    Double3D verts[3] = {theObj->vertArray[v1], theObj->vertArray[v2], theObj->vertArray[v3]};
-    Double3D edges[2];
-    Double3D vnorms[3] = {theObj->viewNormArray[v1], theObj->viewNormArray[v2], theObj->viewNormArray[v3]};
-    Double3D pvec, qvec, tvec;
-    double det, inv_det;
-    double EPSILON = 0.000001;
+    Float3D verts[3] = {theObj->vertArray[v1], theObj->vertArray[v2], theObj->vertArray[v3]};
+    Float3D edges[2];
+    Float3D vnorms[3] = {theObj->viewNormArray[v1], theObj->viewNormArray[v2], theObj->viewNormArray[v3]};
+    Float3D pvec, qvec, tvec;
+    float det, inv_det;
+    float EPSILON = 0.000001;
 
     edges[0] = verts[1].minus(verts[0]);
     edges[1] = verts[2].minus(verts[0]);
@@ -405,9 +404,9 @@ __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3
         return false;
     else
     {
-        hrec->intersectPoint = Double3D((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
-        double w = 1.0 - hrec->u - hrec->v;
-        Double3D sumNorms;
+        hrec->intersectPoint = Float3D((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
+        float w = 1.0 - hrec->u - hrec->v;
+        Float3D sumNorms(0.0, 0.0, 0.0);
         vnorms[0] = vnorms[0].sMult(w);
         vnorms[1] = vnorms[1].sMult(hrec->u);
         vnorms[2] = vnorms[2].sMult(hrec->v);
@@ -456,10 +455,10 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
         CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces, objects[x].surfaces, sizeof(Surface) * h_objects[x].numSurfs, cudaMemcpyHostToDevice));
         CHECK_ERROR(cudaMalloc((void **)&h_objects[x].materials, sizeof(Material) * h_objects[x].numMats));
         CHECK_ERROR(cudaMemcpy(h_objects[x].materials, objects[x].materials, sizeof(Material) * h_objects[x].numMats, cudaMemcpyHostToDevice));
-        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].vertArray, sizeof(Double3D) * h_objects[x].numVerts));
-        CHECK_ERROR(cudaMemcpy(h_objects[x].vertArray, objects[x].vertArray, sizeof(Double3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
-        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].viewNormArray, sizeof(Double3D) * h_objects[x].numVerts));
-        CHECK_ERROR(cudaMemcpy(h_objects[x].viewNormArray, objects[x].viewNormArray, sizeof(Double3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
+        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].vertArray, sizeof(Float3D) * h_objects[x].numVerts));
+        CHECK_ERROR(cudaMemcpy(h_objects[x].vertArray, objects[x].vertArray, sizeof(Float3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
+        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].viewNormArray, sizeof(Float3D) * h_objects[x].numVerts));
+        CHECK_ERROR(cudaMemcpy(h_objects[x].viewNormArray, objects[x].viewNormArray, sizeof(Float3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
     }
 
     CHECK_ERROR(cudaMalloc((void**)&d_objects, sizeof(Mesh) * numObjects));
@@ -540,10 +539,10 @@ __global__ void baseKrnl(Ray *rays, int numRays, Bitmap bitmap)
 
     if (offset < (bitmap.width * bitmap.height))
     {
-        Double3D point(bitmap.firstPixel);
+        Float3D point(bitmap.firstPixel);
         point.x += (offset % bitmap.width) * bitmap.pixelWidth;
         point.y += ((offset - x) / bitmap.width) * bitmap.pixelHeight;
-        rays[offset] = Ray(point.getUnit(), Double3D(), EYE);
+        rays[offset] = Ray(point.getUnit(), Float3D(0.0, 0.0, 0.0), EYE);
     }
 }
 
@@ -556,27 +555,27 @@ __global__ void intersectKrnl(Ray *rays, int numRays, Mesh *objects, int numObje
 
     if (offset < numRays)
     {
-        double t = 0.0;
-        double intersectDist = 0.0;
-        double minDist = 100000000.0;
+        float t = 0.0;
+        float intersectDist = 0.0;
+        float minDist = 100000000.0;
         int minMatIndex = 0;
         bool minBackfacing = false;
         Mesh *minObj = NULL;
-        Double3D minIntPt;
-        Double3D minNormal;
-        Double3D intersectPt;
-        Double3D normal;
-        Double3D origin;
+        Float3D minIntPt(0.0, 0.0, 0.0);
+        Float3D minNormal(0.0, 0.0, 0.0);
+        Float3D intersectPt(0.0, 0.0, 0.0);
+        Float3D normal(0.0, 0.0, 0.0);
+        Float3D origin(0.0, 0.0, 0.0);
 
         for (int obj = 0; obj < numObjects; obj++)
         {
-            if (intersectSphere(rays[offset], &objects[obj], &t))
+            if (intersectSphere(&rays[offset], &(objects[obj].boundingSphere), objects[obj].viewCenter, &t))
             {
                 if (abs(t) < 0.0001)
                     continue;
                 if (spheresOnly)
                 {
-                    intersectPt = Double3D((rays[offset].Ro.x+(rays[offset].Rd.x*t)), (rays[offset].Ro.y+(rays[offset].Rd.y*t)), (rays[offset].Ro.z+(rays[offset].Rd.z*t)));
+                    intersectPt = Float3D((rays[offset].Ro.x+(rays[offset].Rd.x*t)), (rays[offset].Ro.y+(rays[offset].Rd.y*t)), (rays[offset].Ro.z+(rays[offset].Rd.z*t)));
                     normal = (intersectPt.minus(objects[obj].viewCenter).sDiv(objects[obj].boundingSphere.radius));
                     normal.unitize();
                     intersectDist = origin.distanceTo(intersectPt);
@@ -584,8 +583,8 @@ __global__ void intersectKrnl(Ray *rays, int numRays, Mesh *objects, int numObje
                     {
                         minDist = intersectDist;
                         minObj = &objects[obj];
-                        minIntPt = Double3D(intersectPt);
-                        minNormal = Double3D(normal);
+                        minIntPt = Float3D(intersectPt);
+                        minNormal = Float3D(normal);
                     }
                 }
                 else
@@ -635,9 +634,9 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
         DoubleColor Kd;
         DoubleColor Ks;
         DoubleColor shadeColor;
-        Double3D point = intrs[offset].point;
-        Double3D trueNormal;
-        Double3D inv_normal = intrs[offset].normal.sMult(-1.0);
+        Float3D point = intrs[offset].point;
+        Float3D trueNormal(0.0, 0.0, 0.0);
+        Float3D inv_normal = intrs[offset].normal.sMult(-1.0);
 
         layer[offset*4 + 3] = (int) (theObj->materials[materialIndex].reflectivity.r * 255);
 
@@ -645,12 +644,12 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
         Kd = theObj->materials[materialIndex].kd;
         Ks = theObj->materials[materialIndex].ks;
 
-        Double3D R;
-        Double3D L;
-        Double3D V;
+        Float3D R(0.0, 0.0, 0.0);
+        Float3D L(0.0, 0.0, 0.0);
+        Float3D V(0.0, 0.0, 0.0);
 
         shadeColor.plus(lights[0].ambient);
-        V = Double3D(0.0, 0.0, 0.0).minus(point);
+        V = Float3D(0.0, 0.0, 0.0).minus(point);
         V.unitize();
 
         if (rays[offset].flags == EYE && intrs[offset].backFacing && !options.cull)
@@ -665,20 +664,20 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
 
             L = curLight->viewPosition.minus(point);
             L.unitize();
-            double LdotN = L.dot(trueNormal);
+            float LdotN = L.dot(trueNormal);
             LdotN = max(0.0, LdotN);
             DoubleColor diffComponent(0.0, 0.0, 0.0, 1.0);
             if (LdotN > 0.0)
                 diffComponent.plus(DoubleColor(curLight->diffuse.r*Kd.r*LdotN, curLight->diffuse.g*Kd.g*LdotN, curLight->diffuse.b*Kd.b*LdotN, 1.0));
             shadeColor.plus(diffComponent);
 
-            Double3D Pr = trueNormal.sMult(LdotN);
-            Double3D sub = Pr.sMult(2.0);
+            Float3D Pr = trueNormal.sMult(LdotN);
+            Float3D sub = Pr.sMult(2.0);
             R = L.sMult(-1.0).plus(sub);
             R.unitize();
-            double RdotV = R.dot(V);
+            float RdotV = R.dot(V);
             RdotV = max(0.0, RdotV);
-            double cosPhiPower = 0.0;
+            float cosPhiPower = 0.0;
             if (RdotV > 0.0)
                 cosPhiPower = pow(RdotV, theObj->materials[materialIndex].shiny);
             DoubleColor specComponent(curLight->specular.r*Ks.r*cosPhiPower, curLight->specular.g*Ks.g*cosPhiPower, curLight->specular.b*Ks.b*cosPhiPower, 1.0);

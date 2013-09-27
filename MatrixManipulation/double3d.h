@@ -3,35 +3,34 @@
 
 #include <math.h>
 #include <vector>
-#include <cuda_runtime.h>
 
 using namespace std;
 
 class Double3D
 {
 public:
-    __host__ __device__ Double3D()
+    Double3D()
     {
         x = 0.0f;
         y = 0.0f;
         z = 0.0f;
     }
 
-    __host__ __device__ Double3D(double nX, double nY, double nZ)
+    Double3D(double nX, double nY, double nZ)
     {
         x = nX;
         y = nY;
         z = nZ;
     }
 
-    __host__ __device__ Double3D(const Double3D *from)
+    Double3D(const Double3D *from)
     {
         x = from->x;
         y = from->y;
         z = from->z;
     }
 
-    __host__ __device__ Double3D minus(Double3D t1)
+    Double3D minus(Double3D t1)
     {
         Double3D ans;
         ans.x = x - t1.x;
@@ -40,7 +39,7 @@ public:
         return ans;
     }
 
-    __host__ __device__ Double3D cross(Double3D t1)
+    Double3D cross(Double3D t1)
     {
         Double3D ans;
         ans.x = (y)*(t1.z)-(t1.y)*(z);
@@ -49,7 +48,7 @@ public:
         return ans;
     }
 
-    __host__ __device__ Double3D plus(Double3D t1)
+    Double3D plus(Double3D t1)
     {
         Double3D ans;
 
@@ -60,7 +59,7 @@ public:
         return ans;
     }
 
-    __host__ __device__ Double3D sDiv(double s)
+    Double3D sDiv(double s)
     {
         Double3D ans;
         ans.x = x/s;
@@ -69,7 +68,7 @@ public:
         return ans;
     }
 
-    __host__ __device__ Double3D sMult(double s)
+    Double3D sMult(double s)
     {
         Double3D ans;
         ans.x = s*x;
@@ -78,7 +77,7 @@ public:
         return ans;
     }
 
-    __host__ __device__ Double3D preMultiplyMatrix(vector<double> m)
+    Double3D preMultiplyMatrix(vector<double> m)
     {
         Double3D t;
         t.x = (m[0] * x + m[4] * y + m[8] * z + m[12]);
@@ -87,7 +86,7 @@ public:
         return t;
     }
 
-    __host__ __device__ Double3D getUnit()
+    Double3D getUnit()
     {
         Double3D unit;
         double s = sqrt(x*x+y*y+z*z);
@@ -100,19 +99,19 @@ public:
         return unit;
     }
 
-    __host__ __device__ double dot(Double3D t1)
+    double dot(Double3D t1)
     {
         return (x)*(t1.x) + (y)*(t1.y) + (z)*(t1.z);
     }
 
-    __host__ __device__ float distanceTo(Double3D point)
+    float distanceTo(Double3D point)
     {
         Double3D newVect = this->minus(point);
         float s = (float)sqrt(newVect.x * newVect.x + newVect.y * newVect.y + newVect.z * newVect.z);
         return s;
     }
 
-    __host__ __device__ void unitize()
+    void unitize()
     {
         float s = sqrt(x*x+y*y+z*z);
         if (s > 0)
