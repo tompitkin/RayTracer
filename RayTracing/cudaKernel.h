@@ -101,6 +101,46 @@ struct Float3D
     }
 };
 
+struct FloatColor
+{
+    float r;
+    float g;
+    float b;
+    float a;
+
+    __device__ FloatColor(){};
+
+    __device__ FloatColor(float nR, float nG, float nB, float nA)
+    {
+        r = nR;
+        g = nG;
+        b = nB;
+        a = nA;
+    }
+
+    __device__ FloatColor(DoubleColor *from)
+    {
+        r = (float)from->r;
+        g = (float)from->g;
+        b = (float)from->b;
+        a = (float)from->a;
+    }
+
+    __device__ void plus(FloatColor other)
+    {
+        r = r + other.r;
+        g = g + other.g;
+        b = b + other.b;
+    }
+
+    __device__ void scale(float scaleValue)
+    {
+        r *= scaleValue;
+        g *= scaleValue;
+        b *= scaleValue;
+    }
+};
+
 struct Bitmap
 {
     unsigned char *data;
@@ -132,11 +172,11 @@ struct BoundingSphere
 
 struct Material
 {
-    DoubleColor ka;
-    DoubleColor kd;
-    DoubleColor ks;
-    DoubleColor reflectivity;
-    DoubleColor refractivity;
+    FloatColor ka;
+    FloatColor kd;
+    FloatColor ks;
+    FloatColor reflectivity;
+    FloatColor refractivity;
     float refractiveIndex;
     float shiny;
 };
@@ -210,9 +250,9 @@ struct Ray
 
 struct LightCuda
 {
-    DoubleColor ambient;
-    DoubleColor diffuse;
-    DoubleColor specular;
+    FloatColor ambient;
+    FloatColor diffuse;
+    FloatColor specular;
     Float3D viewPosition;
 };
 
@@ -256,9 +296,6 @@ struct Intersect
     }
 };
 
-/*__device__ DoubleColor trace(Ray ray, int numRecurs);
-__device__ DoubleColor shade(Mesh *theObj, Double3D point, Double3D normal, int materialIndex, bool backFacing, Ray ray, int numRecurs);
-__device__ bool traceLightRay(Ray ray);*/
 __device__ bool intersectSphere(Ray *ray, BoundingSphere *theSphere, Float3D viewCenter, float *t);
 __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3, HitRecord *hrec, bool cull);
 __global__ void baseKrnl(Ray *rays, int numRays, Bitmap bitmap);

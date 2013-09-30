@@ -69,11 +69,11 @@ void RayTracerCuda::loadObjects(Mesh *output)
         output[i].materials = new Material[theObj->numMats];
         for (int j = 0; j < theObj->numMats; j++)
         {
-            output[i].materials[j].ka = theObj->materials[j].ka;
-            output[i].materials[j].kd = theObj->materials[j].kd;
-            output[i].materials[j].ks = theObj->materials[j].ks;
-            output[i].materials[j].reflectivity = theObj->materials[j].reflectivity;
-            output[i].materials[j].refractivity = theObj->materials[j].refractivity;
+            output[i].materials[j].ka = FloatColor(&theObj->materials[j].ka);
+            output[i].materials[j].kd = FloatColor(&theObj->materials[j].kd);
+            output[i].materials[j].ks = FloatColor(&theObj->materials[j].ks);
+            output[i].materials[j].reflectivity = FloatColor(&theObj->materials[j].reflectivity);
+            output[i].materials[j].refractivity = FloatColor(&theObj->materials[j].refractivity);
             output[i].materials[j].refractiveIndex = theObj->materials[j].refractiveIndex;
             output[i].materials[j].shiny = theObj->materials[j].shiny;
         }
