@@ -62,7 +62,7 @@ struct Float3D
 
     __device__ Float3D sDiv(float s)
     {
-        return Float3D(x/s, y/x, z/s);
+        return Float3D(x/s, y/s, z/s);
     }
 
     __device__ Float3D sMult(float s)
