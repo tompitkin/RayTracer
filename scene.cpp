@@ -230,7 +230,7 @@ void Scene::mousePressEvent(QMouseEvent *event)
         leftClickStart = event->pos();
 }
 
-void Scene::mouseReleaseEvent(QMouseEvent *event)
+void Scene::mouseReleaseEvent(QMouseEvent *)
 {
     this->setCursor(Qt::ArrowCursor);
 }

@@ -53,7 +53,7 @@ public:
     void doViewTrans();
     double heightOfPixel();
     double widthOfPixel();
-    bool traceLightRay(Ray ray, PMesh *fromObj);
+    bool traceLightRay(Ray ray);
 
     static const int EYE = 0;
     static const int REFLECT = 0x1;

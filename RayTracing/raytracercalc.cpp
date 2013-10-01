@@ -179,7 +179,7 @@ DoubleColor RayTracerCalc::shade(PMesh *theObj, Double3D point, Double3D normal,
             Double3D Rd(lightViewPos.minus(point));
             Rd.unitize();
             Ray shadowRay = Ray(Double3D(Rd), Double3D(point));
-            if (traceLightRay(shadowRay, theObj))
+            if (traceLightRay(shadowRay))
                 obstructed = true;
         }
         if (obstructed)
@@ -334,7 +334,7 @@ void RayTracerCalc::calcBounds()
     farRight = boundaryRay.Ro.x + (boundaryRay.Rd.x * tFar);
 }
 
-bool RayTracerCalc::traceLightRay(RayTracerCalc::Ray ray, PMesh *fromObj)
+bool RayTracerCalc::traceLightRay(RayTracerCalc::Ray ray)
 {
     double t = 0.0;
     for (int obj = 0; obj < (int)theScene->objects.size(); obj++)
