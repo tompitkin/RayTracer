@@ -1,16 +1,16 @@
 #include "cudaKernel.h"
 #include "stdio.h"
 
-__device__ bool intersectSphere(Ray *ray, BoundingSphere *theSphere, Float3D viewCenter, float *t)
+__device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, float *t)
 {
     const float EPS = 0.00001;
     float t0=0.0, t1=0.0, A=0.0, B=0.0, C=0.0, discrim=0.0;
-    Float3D RoMinusSc = ray->Ro.minus(viewCenter);
+    Float3D RoMinusSc = ray->Ro.minus(&viewCenter);
     float fourAC = 0.0;
 
-    A = ray->Rd.dot(ray->Rd);
-    B = 2.0 * (ray->Rd.dot(RoMinusSc));
-    C = RoMinusSc.dot(RoMinusSc) - theSphere->radiusSq;
+    A = ray->Rd.dot(&ray->Rd);
+    B = 2.0 * (ray->Rd.dot(&RoMinusSc));
+    C = RoMinusSc.dot(&RoMinusSc) - radiusSq;
     fourAC = (4*A*C);
 
     discrim = (B*B) - fourAC;
@@ -53,32 +53,30 @@ __device__ bool intersectSphere(Ray *ray, BoundingSphere *theSphere, Float3D vie
     }
 }
 
-__device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3, HitRecord *hrec, bool cull)
+__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *v2, Float3D *v3, Float3D *n1, Float3D *n2, Float3D *n3, HitRecord *hrec, bool cull)
 {
-    Float3D verts[3] = {theObj->vertArray[v1], theObj->vertArray[v2], theObj->vertArray[v3]};
     Float3D edges[2];
-    Float3D vnorms[3] = {theObj->viewNormArray[v1], theObj->viewNormArray[v2], theObj->viewNormArray[v3]};
     Float3D pvec, qvec, tvec;
     float det, inv_det;
     float EPSILON = 0.000001;
 
-    edges[0] = verts[1].minus(verts[0]);
-    edges[1] = verts[2].minus(verts[0]);
-    pvec = ray->Rd.cross(edges[1]);
-    det = edges[0].dot(pvec);
+    edges[0] = v2->minus(v1);
+    edges[1] = v3->minus(v1);
+    pvec = ray->Rd.cross(&edges[1]);
+    det = edges[0].dot(&pvec);
     if(cull)
     {
         if (det < EPSILON)
             return false;
-        tvec = ray->Ro.minus(verts[0]);
-        hrec->u = tvec.dot(pvec);
+        tvec = ray->Ro.minus(v1);
+        hrec->u = tvec.dot(&pvec);
         if (hrec->u < 0.0 || hrec->u > det)
             return false;
-        qvec = tvec.cross(edges[0]);
-        hrec->v = ray->Rd.dot(qvec);
+        qvec = tvec.cross(&edges[0]);
+        hrec->v = ray->Rd.dot(&qvec);
         if (hrec->v < 0.0 || hrec->u + hrec->v > det)
             return false;
-        hrec->t = edges[1].dot(qvec);
+        hrec->t = edges[1].dot(&qvec);
         inv_det = 1.0/det;
         hrec->t *= inv_det;
         hrec->u *= inv_det;
@@ -89,19 +87,19 @@ __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3
         if (det > -EPSILON && det < EPSILON)
             return false;
         inv_det = 1.0/det;
-        tvec = ray->Ro.minus(verts[0]);
-        hrec->u = tvec.dot(pvec) * inv_det;
+        tvec = ray->Ro.minus(v1);
+        hrec->u = tvec.dot(&pvec) * inv_det;
         if (hrec->u < 0.0 || hrec->u > 1.0)
             return false;
-        qvec = tvec.cross(edges[0]);
-        hrec->v = ray->Rd.dot(qvec) * inv_det;
+        qvec = tvec.cross(&edges[0]);
+        hrec->v = ray->Rd.dot(&qvec) * inv_det;
         if (hrec->v < 0.0 || hrec->u + hrec->v > 1.0)
             return false;
         if (det < -EPSILON)
             hrec->backfacing = true;
         else
             hrec->backfacing = false;
-        hrec->t = edges[1].dot(qvec) * inv_det;
+        hrec->t = edges[1].dot(&qvec) * inv_det;
     }
     if (hrec->t < EPSILON)
         return false;
@@ -109,11 +107,11 @@ __device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3
     {
         hrec->intersectPoint = Float3D((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
         float w = 1.0 - hrec->u - hrec->v;
-        Float3D sumNorms(0.0, 0.0, 0.0);
-        vnorms[0] = vnorms[0].sMult(w);
-        vnorms[1] = vnorms[1].sMult(hrec->u);
-        vnorms[2] = vnorms[2].sMult(hrec->v);
-        sumNorms = vnorms[0].plus(vnorms[1].plus(vnorms[2]));
+        Float3D temp1 = n1->sMult(w);
+        Float3D temp2 = n2->sMult(hrec->u);
+        Float3D temp3 = n3->sMult(hrec->v);
+        Float3D sumNorms = temp2.plus(&temp3);
+        sumNorms = temp1.plus(&sumNorms);
         hrec->normal = sumNorms;
         hrec->normal.unitize();
         return true;
@@ -126,6 +124,7 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
     unsigned char *d_bitmap;
     unsigned char *h_bitmap;
     unsigned char *layers[options->maxRecursiveDepth + 1];
+    bool *hits;
     Mesh *d_objects;
     Mesh *h_objects;
     LightCuda *d_lights;
@@ -146,11 +145,16 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
         memcpy(h_objects[x].surfaces, objects[x].surfaces, sizeof(Surface) * objects[x].numSurfs);
         for (int y = 0; y < h_objects[x].numSurfs; y++)
         {
-            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].verts, sizeof(int) * h_objects[x].surfaces[y].numVerts));
-            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].verts, objects[x].surfaces[y].verts, sizeof(int) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
-            delete [] objects[x].surfaces[y].verts;
-            objects[x].surfaces[y].verts = h_objects[x].surfaces[y].verts;
-            h_objects[x].surfaces[y].verts = NULL;
+            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].vertArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts));
+            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].vertArray, objects[x].surfaces[y].vertArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
+            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].viewNormArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts));
+            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].viewNormArray, objects[x].surfaces[y].viewNormArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
+            delete [] objects[x].surfaces[y].vertArray;
+            delete [] objects[x].surfaces[y].viewNormArray;
+            objects[x].surfaces[y].vertArray = h_objects[x].surfaces[y].vertArray;
+            objects[x].surfaces[y].viewNormArray = h_objects[x].surfaces[y].viewNormArray;
+            h_objects[x].surfaces[y].vertArray = NULL;
+            h_objects[x].surfaces[y].viewNormArray = NULL;
         }
 
         delete [] h_objects[x].surfaces;
@@ -158,10 +162,6 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
         CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces, objects[x].surfaces, sizeof(Surface) * h_objects[x].numSurfs, cudaMemcpyHostToDevice));
         CHECK_ERROR(cudaMalloc((void **)&h_objects[x].materials, sizeof(Material) * h_objects[x].numMats));
         CHECK_ERROR(cudaMemcpy(h_objects[x].materials, objects[x].materials, sizeof(Material) * h_objects[x].numMats, cudaMemcpyHostToDevice));
-        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].vertArray, sizeof(Float3D) * h_objects[x].numVerts));
-        CHECK_ERROR(cudaMemcpy(h_objects[x].vertArray, objects[x].vertArray, sizeof(Float3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
-        CHECK_ERROR(cudaMalloc((void **)&h_objects[x].viewNormArray, sizeof(Float3D) * h_objects[x].numVerts));
-        CHECK_ERROR(cudaMemcpy(h_objects[x].viewNormArray, objects[x].viewNormArray, sizeof(Float3D) * h_objects[x].numVerts, cudaMemcpyHostToDevice));
     }
 
     CHECK_ERROR(cudaMalloc((void**)&d_objects, sizeof(Mesh) * numObjects));
@@ -175,6 +175,8 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
 
     CHECK_ERROR(cudaMalloc((void**)&intersects, sizeof(Intersect) * numRays));
 
+    CHECK_ERROR(cudaMalloc((void**)&hits, sizeof(bool) * numRays));
+
     for(int i = 0; i <= options->maxRecursiveDepth; i++)
     {
         CHECK_ERROR(cudaMalloc((void**)&layers[i], sizeof(unsigned char) * (bitmap->width * bitmap->height * 4)));
@@ -183,11 +185,24 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
 
     dim3 blocks((bitmap->width+15)/16, (bitmap->height+15)/16);
     dim3 threads(16, 16);
-    //kernel<<<blocks, threads>>>(*bitmap, d_objects, numObjects, d_lights, numLights, *options);
+    baseKrnl<<<blocks, threads>>>(rays, *bitmap);
     for(int pass = 0; pass <= options->maxRecursiveDepth; pass++)
     {
-        baseKrnl<<<blocks, threads>>>(rays, numRays, *bitmap);
-        intersectKrnl<<<blocks, threads>>>(rays, numRays, d_objects, numObjects, options->spheresOnly, intersects, options->cull);
+        initIntersectKrnl<<<blocks, threads>>>(numRays, intersects);
+        intersectSphereKrnl<<<blocks, threads>>>(rays, numRays, d_objects, numObjects, options->spheresOnly, intersects, hits);
+        if (!options->spheresOnly)
+        {
+            for (int obj = 0; obj < numObjects; obj++)
+            {
+                for (int surf = 0; surf < objects[obj].numSurfs; surf++)
+                {
+                    for (int offset = 0; offset < (int)ceil(((float)objects[obj].surfaces[surf].numVerts) / CHUNK); offset++)
+                    {
+                        intersectTriangleKrnl<<<blocks, threads>>>(rays, numRays, intersects, hits, &d_objects[obj], &objects[obj].surfaces[surf].vertArray[offset * CHUNK], &objects[obj].surfaces[surf].viewNormArray[offset * CHUNK], (objects[obj].surfaces[surf].numVerts - offset * CHUNK) < CHUNK ? (objects[obj].surfaces[surf].numVerts - offset * CHUNK) : CHUNK , objects[obj].surfaces[surf].material, options->cull);
+                    }
+                }
+            }
+        }
         shadeKrnl<<<blocks, threads>>>(rays, numRays, intersects, layers[pass], d_lights, numLights, *options, pass == options->maxRecursiveDepth ? true : false);
         composeKrnl<<<blocks, threads>>>(*bitmap, layers[pass], pass == options->maxRecursiveDepth ? true : false);
     }
@@ -200,13 +215,13 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
     {
         for (int y = 0; y < h_objects[x].numSurfs; y++)
         {
-            CHECK_ERROR(cudaFree(objects[x].surfaces[y].verts));
-            objects[x].surfaces[y].verts = NULL;
+            CHECK_ERROR(cudaFree(objects[x].surfaces[y].vertArray));
+            CHECK_ERROR(cudaFree(objects[x].surfaces[y].viewNormArray));
+            objects[x].surfaces[y].vertArray = NULL;
+            objects[x].surfaces[y].viewNormArray = NULL;
         }
         CHECK_ERROR_FREE(cudaFree(h_objects[x].surfaces), &h_objects[x].surfaces);
         CHECK_ERROR_FREE(cudaFree(h_objects[x].materials), &h_objects[x].materials);
-        CHECK_ERROR_FREE(cudaFree(h_objects[x].vertArray), &h_objects[x].vertArray);
-        CHECK_ERROR_FREE(cudaFree(h_objects[x].viewNormArray), &h_objects[x].viewNormArray);
     }
     CHECK_ERROR_FREE(cudaFree(d_objects), &d_objects);
 
@@ -215,6 +230,8 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
     CHECK_ERROR_FREE(cudaFree(rays), &rays);
 
     CHECK_ERROR_FREE(cudaFree(intersects), &intersects);
+
+    CHECK_ERROR_FREE(cudaFree(hits), &hits);
 
     for(int i = 0; i <= options->maxRecursiveDepth; i++)
         CHECK_ERROR_FREE(cudaFree(layers[i]), &layers[i]);
@@ -236,92 +253,123 @@ void checkError(cudaError_t error, const char *file, int line, void **nullObject
     }
 }
 
-__global__ void baseKrnl(Ray *rays, int numRays, Bitmap bitmap)
+__global__ void baseKrnl(Ray *rays, Bitmap bitmap)
 {
     //Map from threadIdx & blockIdx to pixel position
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
 
     if (offset < (bitmap.width * bitmap.height))
     {
         Float3D point(bitmap.firstPixel);
         point.x += (offset % bitmap.width) * bitmap.pixelWidth;
-        point.y += ((offset - x) / bitmap.width) * bitmap.pixelHeight;
-        rays[offset] = Ray(point.getUnit(), Float3D(0.0, 0.0, 0.0), EYE);
+        point.y += ((offset - (threadIdx.x + blockIdx.x * blockDim.x)) / bitmap.width) * bitmap.pixelHeight;
+        rays[offset].Rd = point.getUnit();
+        rays[offset].Ro = Float3D(0.0, 0.0, 0.0);
+        rays[offset].flags = EYE;
     }
 }
 
-__global__ void intersectKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool cull)
+__global__ void initIntersectKrnl(int numIntrs, Intersect *intrs)
+{
+    int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
+
+    if (offset < numIntrs)
+    {
+        intrs[offset].theObj = NULL;
+        intrs[offset].distance = 100000000.0;
+    }
+}
+
+__global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool *hits)
 {
     //Map from threadIdx & blockIdx to pixel position
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
+
+    __shared__ Ray R[16][16];
 
     if (offset < numRays)
     {
+        R[threadIdx.y][threadIdx.x] = rays[offset];
+
         float t = 0.0;
         float intersectDist = 0.0;
         float minDist = 100000000.0;
-        int minMatIndex = 0;
-        bool minBackfacing = false;
-        Mesh *minObj = NULL;
-        Float3D minIntPt(0.0, 0.0, 0.0);
-        Float3D minNormal(0.0, 0.0, 0.0);
-        Float3D intersectPt(0.0, 0.0, 0.0);
-        Float3D normal(0.0, 0.0, 0.0);
-        Float3D origin(0.0, 0.0, 0.0);
+        Float3D intersectPt;
+        Float3D normal;
+        Mesh *theObj;
 
         for (int obj = 0; obj < numObjects; obj++)
         {
-            if (intersectSphere(&rays[offset], &(objects[obj].boundingSphere), objects[obj].viewCenter, &t))
+            theObj = &objects[obj];
+            if (intersectSphere(&R[threadIdx.y][threadIdx.x], theObj->boundingSphere.radiusSq, theObj->viewCenter, &t))
             {
                 if (abs(t) < 0.0001)
                     continue;
                 if (spheresOnly)
                 {
-                    intersectPt = Float3D((rays[offset].Ro.x+(rays[offset].Rd.x*t)), (rays[offset].Ro.y+(rays[offset].Rd.y*t)), (rays[offset].Ro.z+(rays[offset].Rd.z*t)));
-                    normal = (intersectPt.minus(objects[obj].viewCenter).sDiv(objects[obj].boundingSphere.radius));
+                    intersectPt = Float3D((R[threadIdx.y][threadIdx.x].Ro.x+(R[threadIdx.y][threadIdx.x].Rd.x*t)), (R[threadIdx.y][threadIdx.x].Ro.y+(R[threadIdx.y][threadIdx.x].Rd.y*t)), (R[threadIdx.y][threadIdx.x].Ro.z+(R[threadIdx.y][threadIdx.x].Rd.z*t)));
+                    normal = (intersectPt.minus(&theObj->viewCenter).sDiv(theObj->boundingSphere.radius));
                     normal.unitize();
-                    intersectDist = origin.distanceTo(intersectPt);
+                    intersectDist = Float3D(0.0, 0.0, 0.0).distanceTo(&intersectPt);
                     if (intersectDist < minDist)
                     {
                         minDist = intersectDist;
-                        minObj = &objects[obj];
-                        minIntPt = Float3D(intersectPt);
-                        minNormal = Float3D(normal);
+                        intrs[offset] = Intersect(0, false, theObj, intersectPt, normal, minDist);
                     }
                 }
                 else
                 {
-                    for (int surf = 0; surf < objects[obj].numSurfs; surf++)
+                    hits[offset] = true;
+                }
+            }
+            else if (!spheresOnly)
+            {
+                hits[offset] = false;
+            }
+        }
+    }
+}
+
+__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat, bool cull)
+{
+    int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
+
+    __shared__ Float3D V[CHUNK];
+    __shared__ Float3D N[CHUNK];
+    __shared__ Ray R[16][16];
+
+    if (offset < numRays)
+    {
+        R[threadIdx.y][threadIdx.x] = rays[offset];
+        float intersectDist = 0.0;
+        float minDist = intrs[offset].distance;
+
+        if ((threadIdx.x + threadIdx.y * 16) < numVerts)
+        {
+            V[threadIdx.x + threadIdx.y * 16] = verts[(threadIdx.x + threadIdx.y * 16)];
+            N[threadIdx.x + threadIdx.y * 16] = norms[(threadIdx.x + threadIdx.y * 16)];
+        }
+        __syncthreads();
+
+        if (hits[offset])
+        {
+            for (int i =  0; i < (numVerts / 3); i++)
+            {
+                HitRecord hrec;
+                if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &V[i * 3 + 1], &V[i * 3 + 2], &N[i * 3], &N[i * 3 + 1], &N[i * 3 + 2], &hrec, false))
+                {
+                    if (!(R[threadIdx.y][threadIdx.x].flags == EYE && hrec.backfacing && cull) || R[threadIdx.y][threadIdx.x].flags == REFLECT)
                     {
-                        for (int i =  0; i < (int)(objects[obj].surfaces[surf].numVerts / 3); i++)
+                        intersectDist = R[threadIdx.y][threadIdx.x].Ro.distanceTo(&hrec.intersectPoint);
+                        if (intersectDist < minDist)
                         {
-                            HitRecord hrec;
-                            if (intersectTriangle(&rays[offset], &objects[obj], objects[obj].surfaces[surf].verts[i*3], objects[obj].surfaces[surf].verts[(i*3)+1], objects[obj].surfaces[surf].verts[(i*3)+2], &hrec, false))
-                            {
-                                if (!(rays[offset].flags == EYE && hrec.backfacing && cull) || rays[offset].flags == REFLECT)
-                                {
-                                    intersectDist = rays[offset].Ro.distanceTo(hrec.intersectPoint);
-                                    if (intersectDist < minDist)
-                                    {
-                                        minDist = intersectDist;
-                                        minObj = &objects[obj];
-                                        minIntPt = hrec.intersectPoint;
-                                        minNormal = hrec.normal;
-                                        minMatIndex = objects[obj].surfaces[surf].material;
-                                        minBackfacing = hrec.backfacing;
-                                    }
-                                }
-                            }
+                            minDist = intersectDist;
+                            intrs[offset] = Intersect(mat, hrec.backfacing, theObj, hrec.intersectPoint, hrec.normal, minDist);
                         }
                     }
                 }
             }
         }
-        intrs[offset] = Intersect(minMatIndex, minBackfacing, minObj, minIntPt, minNormal);
     }
 }
 
@@ -359,7 +407,7 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
         ambColor.b = Ka.b * lights[0].ambient.b;
 
         shadeColor.plus(ambColor);
-        V = Float3D(0.0, 0.0, 0.0).minus(point);
+        V = Float3D(0.0, 0.0, 0.0).minus(&point);
         V.unitize();
 
         if (rays[offset].flags == EYE && intrs[offset].backFacing && !options.cull)
@@ -372,9 +420,9 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
         {
             curLight = &lights[i];
 
-            L = curLight->viewPosition.minus(point);
+            L = curLight->viewPosition.minus(&point);
             L.unitize();
-            float LdotN = L.dot(trueNormal);
+            float LdotN = L.dot(&trueNormal);
             LdotN = max(0.0, LdotN);
             FloatColor diffComponent(0.0, 0.0, 0.0, 1.0);
             if (LdotN > 0.0)
@@ -383,9 +431,9 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
 
             Float3D Pr = trueNormal.sMult(LdotN);
             Float3D sub = Pr.sMult(2.0);
-            R = L.sMult(-1.0).plus(sub);
+            R = L.sMult(-1.0).plus(&sub);
             R.unitize();
-            float RdotV = R.dot(V);
+            float RdotV = R.dot(&V);
             RdotV = max(0.0, RdotV);
             float cosPhiPower = 0.0;
             if (RdotV > 0.0)

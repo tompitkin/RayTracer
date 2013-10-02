@@ -79,29 +79,22 @@ void RayTracerCuda::loadObjects(Mesh *output)
         }
 
         output[i].numSurfs = theObj->numSurf;
-        output[i].numVerts = theObj->numVerts;
         output[i].surfaces = new Surface[theObj->numSurf];
-        output[i].vertArray = new Float3D[theObj->numVerts];
-        output[i].viewNormArray = new Float3D[theObj->numVerts];
-
-        for (int vert = 0; vert < theObj->numVerts; vert++)
-        {
-            output[i].vertArray[vert] = Float3D(&theObj->vertArray.at(vert)->viewPos);
-            output[i].viewNormArray[vert] = Float3D(&theObj->viewNormArray.at(vert));
-        }
 
         int surfCount = 0, vertCount = 0;
         for (PMesh::SurfCell *curSurf = theObj->surfHead.get(); curSurf != nullptr; curSurf = curSurf->next.get(), surfCount++, vertCount = 0)
         {
             output[i].surfaces[surfCount].material = curSurf->material;
             output[i].surfaces[surfCount].numVerts = curSurf->numVerts;
-            output[i].surfaces[surfCount].verts = new int[curSurf->numVerts];
+            output[i].surfaces[surfCount].vertArray = new Float3D[curSurf->numVerts];
+            output[i].surfaces[surfCount].viewNormArray = new Float3D[curSurf->numVerts];
 
             for (PMesh::PolyCell *curPoly = curSurf->polyHead.get(); curPoly != nullptr; curPoly = curPoly->next.get())
             {
                 for (PMesh::VertListCell *curVert = curPoly->vert.get(); curVert != nullptr; curVert = curVert->next.get())
                 {
-                    output[i].surfaces[surfCount].verts[vertCount++] = curVert->vert;
+                    output[i].surfaces[surfCount].vertArray[vertCount] = Float3D(&theObj->vertArray.at(curVert->vert)->viewPos);
+                    output[i].surfaces[surfCount].viewNormArray[vertCount++] = Float3D(&theObj->viewNormArray.at(curVert->vert));
                 }
             }
         }

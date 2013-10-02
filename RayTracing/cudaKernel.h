@@ -10,6 +10,8 @@
 #define CHECK_ERROR(err) checkError(err, __FILE__, __LINE__)
 #define CHECK_ERROR_FREE(err, nullObject) checkError(err, __FILE__, __LINE__, (void**)nullObject);
 
+#define CHUNK 36
+
 static const int EYE = 0;
 static const int REFLECT = 0x1;
 static const int INTERNAL_REFRACT = 0x2;
@@ -45,19 +47,19 @@ struct Float3D
         z = (float)from->z;
     }
 
-    __device__ Float3D minus(Float3D t1)
+    __device__ Float3D minus(Float3D *t1)
     {
-        return Float3D(x - t1.x, y - t1.y, z - t1.z);
+        return Float3D(x - t1->x, y - t1->y, z - t1->z);
     }
 
-    __device__ Float3D plus(Float3D t1)
+    __device__ Float3D plus(Float3D *t1)
     {
-        return Float3D(x + t1.x, y + t1.y, z + t1.z);
+        return Float3D(x + t1->x, y + t1->y, z + t1->z);
     }
 
-    __device__ Float3D cross(Float3D t1)
+    __device__ Float3D cross(Float3D *t1)
     {
-        return Float3D((y)*(t1.z)-(t1.y)*(z), (z)*(t1.x)-(t1.z)*(x), (x)*(t1.y)-(t1.x)*(y));
+        return Float3D((y)*(t1->z)-(t1->y)*(z), (z)*(t1->x)-(t1->z)*(x), (x)*(t1->y)-(t1->x)*(y));
     }
 
     __device__ Float3D sDiv(float s)
@@ -78,12 +80,12 @@ struct Float3D
         return Float3D();
     }
 
-    __device__ float dot(Float3D t1)
+    __device__ float dot(Float3D *t1)
     {
-        return (x)*(t1.x) + (y)*(t1.y) + (z)*(t1.z);
+        return (x)*(t1->x) + (y)*(t1->y) + (z)*(t1->z);
     }
 
-    __device__ float distanceTo(Float3D point)
+    __device__ float distanceTo(Float3D *point)
     {
         Float3D newVect = this->minus(point);
         return (float)sqrt(newVect.x * newVect.x + newVect.y * newVect.y + newVect.z * newVect.z);
@@ -184,12 +186,15 @@ struct Material
 struct Surface
 {
     int numVerts, material;
-    int *verts;
+    Float3D *vertArray;
+    Float3D *viewNormArray;
 
     ~Surface()
     {
-        if (verts != NULL)
-            delete [] verts;
+        if (vertArray != NULL)
+            delete [] vertArray;
+        if (viewNormArray != NULL)
+            delete [] viewNormArray;
     }
 };
 
@@ -197,13 +202,11 @@ struct Mesh
 {
     int numMats;
     int numSurfs;
-    int numVerts;
     BoundingSphere boundingSphere;
     Float3D viewCenter;
     Material *materials;
     Surface *surfaces;
-    Float3D *vertArray;
-    Float3D *viewNormArray;
+
 
     ~Mesh()
     {
@@ -211,10 +214,6 @@ struct Mesh
             delete [] materials;
         if (surfaces != NULL)
             delete [] surfaces;
-        if (vertArray != NULL)
-            delete [] vertArray;
-        if (viewNormArray != NULL)
-            delete [] viewNormArray;
     }
 };
 
@@ -276,6 +275,7 @@ struct HitRecord
 struct Intersect
 {
     int materialIndex;
+    float distance;
     bool backFacing;
     Mesh *theObj;
     Float3D point;
@@ -284,22 +284,26 @@ struct Intersect
     __device__ Intersect()
     {
         theObj = NULL;
+        distance = 100000000.0;
     }
 
-    __device__ Intersect(int matIndex, bool backFacing, Mesh *obj, Float3D point, Float3D normal)
+    __device__ Intersect(int matIndex, bool backFacing, Mesh *obj, Float3D point, Float3D normal, float distance)
     {
         materialIndex = matIndex;
         this->backFacing = backFacing;
         theObj = obj;
         this->point = point;
         this->normal = normal;
+        this->distance = distance;
     }
 };
 
-__device__ bool intersectSphere(Ray *ray, BoundingSphere *theSphere, Float3D viewCenter, float *t);
-__device__ bool intersectTriangle(Ray *ray, Mesh *theObj, int v1, int v2, int v3, HitRecord *hrec, bool cull);
-__global__ void baseKrnl(Ray *rays, int numRays, Bitmap bitmap);
-__global__ void intersectKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool cull);
+__device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, float *t);
+__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *v2, Float3D *v3, Float3D *n1, Float3D *n2, Float3D *n3, HitRecord *hrec, bool cull);
+__global__ void baseKrnl(Ray *rays, Bitmap bitmap);
+__global__ void initIntersectKrnl(int numIntrs, Intersect *intrs);
+__global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool *hits);
+__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat, bool cull);
 __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options, bool finalPass);
 __global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass);
 
