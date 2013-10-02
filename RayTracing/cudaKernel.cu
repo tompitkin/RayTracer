@@ -344,10 +344,10 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
         float intersectDist = 0.0;
         float minDist = intrs[offset].distance;
 
-        if ((threadIdx.x + threadIdx.y * 16) < numVerts)
+        if ((threadIdx.y + threadIdx.x * 16) < numVerts)
         {
-            V[threadIdx.x + threadIdx.y * 16] = verts[(threadIdx.x + threadIdx.y * 16)];
-            N[threadIdx.x + threadIdx.y * 16] = norms[(threadIdx.x + threadIdx.y * 16)];
+            V[threadIdx.y + threadIdx.x * 16] = verts[(threadIdx.y + threadIdx.x * 16)];
+            N[threadIdx.y + threadIdx.x * 16] = norms[(threadIdx.y + threadIdx.x * 16)];
         }
         __syncthreads();
 

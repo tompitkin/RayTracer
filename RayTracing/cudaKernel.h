@@ -10,7 +10,7 @@
 #define CHECK_ERROR(err) checkError(err, __FILE__, __LINE__)
 #define CHECK_ERROR_FREE(err, nullObject) checkError(err, __FILE__, __LINE__, (void**)nullObject);
 
-#define CHUNK 36
+#define CHUNK 102
 
 static const int EYE = 0;
 static const int REFLECT = 0x1;
