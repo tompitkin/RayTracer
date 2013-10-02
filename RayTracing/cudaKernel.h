@@ -299,7 +299,7 @@ struct Intersect
 };
 
 __device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, float *t);
-__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *v2, Float3D *v3, Float3D *n1, Float3D *n2, Float3D *n3, HitRecord *hrec, bool cull);
+__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *n1, HitRecord *hrec, bool cull);
 __global__ void baseKrnl(Ray *rays, Bitmap bitmap);
 __global__ void initIntersectKrnl(int numIntrs, Intersect *intrs);
 __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool *hits);

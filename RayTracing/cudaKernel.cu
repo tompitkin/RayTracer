@@ -53,22 +53,22 @@ __device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, fl
     }
 }
 
-__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *v2, Float3D *v3, Float3D *n1, Float3D *n2, Float3D *n3, HitRecord *hrec, bool cull)
+__device__ bool intersectTriangle(Ray *ray, Float3D *v, Float3D *n, HitRecord *hrec, bool cull)
 {
     Float3D edges[2];
     Float3D pvec, qvec, tvec;
     float det, inv_det;
-    float EPSILON = 0.000001;
+    const float EPSILON = 0.000001;
 
-    edges[0] = v2->minus(v1);
-    edges[1] = v3->minus(v1);
+    edges[0] = v[1].minus(&v[0]);
+    edges[1] = v[2].minus(&v[0]);
     pvec = ray->Rd.cross(&edges[1]);
     det = edges[0].dot(&pvec);
     if(cull)
     {
         if (det < EPSILON)
             return false;
-        tvec = ray->Ro.minus(v1);
+        tvec = ray->Ro.minus(v);
         hrec->u = tvec.dot(&pvec);
         if (hrec->u < 0.0 || hrec->u > det)
             return false;
@@ -87,7 +87,7 @@ __device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *v2, Float3D *v
         if (det > -EPSILON && det < EPSILON)
             return false;
         inv_det = 1.0/det;
-        tvec = ray->Ro.minus(v1);
+        tvec = ray->Ro.minus(v);
         hrec->u = tvec.dot(&pvec) * inv_det;
         if (hrec->u < 0.0 || hrec->u > 1.0)
             return false;
@@ -107,11 +107,10 @@ __device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *v2, Float3D *v
     {
         hrec->intersectPoint = Float3D((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
         float w = 1.0 - hrec->u - hrec->v;
-        Float3D temp1 = n1->sMult(w);
-        Float3D temp2 = n2->sMult(hrec->u);
-        Float3D temp3 = n3->sMult(hrec->v);
-        Float3D sumNorms = temp2.plus(&temp3);
-        sumNorms = temp1.plus(&sumNorms);
+
+        Float3D sumNorms = n[2].sMult(hrec->v);
+        sumNorms = n[1].sMult(hrec->u).plus(&sumNorms);
+        sumNorms = n[0].sMult(w).plus(&sumNorms);
         hrec->normal = sumNorms;
         hrec->normal.unitize();
         return true;
@@ -343,12 +342,11 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
         R[threadIdx.y][threadIdx.x] = rays[offset];
         float intersectDist = 0.0;
         float minDist = intrs[offset].distance;
+        int index = (threadIdx.y + threadIdx.x * 16) % numVerts;
 
-        if ((threadIdx.y + threadIdx.x * 16) < numVerts)
-        {
-            V[threadIdx.y + threadIdx.x * 16] = verts[(threadIdx.y + threadIdx.x * 16)];
-            N[threadIdx.y + threadIdx.x * 16] = norms[(threadIdx.y + threadIdx.x * 16)];
-        }
+        V[index] = verts[index];
+        N[index] = norms[index];
+
         __syncthreads();
 
         if (hits[offset])
@@ -356,7 +354,7 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
             for (int i =  0; i < (numVerts / 3); i++)
             {
                 HitRecord hrec;
-                if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &V[i * 3 + 1], &V[i * 3 + 2], &N[i * 3], &N[i * 3 + 1], &N[i * 3 + 2], &hrec, false))
+                if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &N[i * 3], &hrec, false))
                 {
                     if (!(R[threadIdx.y][threadIdx.x].flags == EYE && hrec.backfacing && cull) || R[threadIdx.y][threadIdx.x].flags == REFLECT)
                     {
