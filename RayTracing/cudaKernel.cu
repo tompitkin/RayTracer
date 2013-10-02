@@ -53,7 +53,7 @@ __device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, fl
     }
 }
 
-__device__ bool intersectTriangle(Ray *ray, Float3D *v, Float3D *n, HitRecord *hrec, bool cull)
+__device__ bool intersectTriangle(Ray *ray, Float3D *v, Float3D *n, HitRecord *hrec)
 {
     Float3D edges[2];
     Float3D pvec, qvec, tvec;
@@ -64,43 +64,24 @@ __device__ bool intersectTriangle(Ray *ray, Float3D *v, Float3D *n, HitRecord *h
     edges[1] = v[2].minus(&v[0]);
     pvec = ray->Rd.cross(&edges[1]);
     det = edges[0].dot(&pvec);
-    if(cull)
-    {
-        if (det < EPSILON)
-            return false;
-        tvec = ray->Ro.minus(v);
-        hrec->u = tvec.dot(&pvec);
-        if (hrec->u < 0.0 || hrec->u > det)
-            return false;
-        qvec = tvec.cross(&edges[0]);
-        hrec->v = ray->Rd.dot(&qvec);
-        if (hrec->v < 0.0 || hrec->u + hrec->v > det)
-            return false;
-        hrec->t = edges[1].dot(&qvec);
-        inv_det = 1.0/det;
-        hrec->t *= inv_det;
-        hrec->u *= inv_det;
-        hrec->v *= inv_det;
-    }
+
+    if (det > -EPSILON && det < EPSILON)
+        return false;
+    inv_det = 1.0/det;
+    tvec = ray->Ro.minus(v);
+    hrec->u = tvec.dot(&pvec) * inv_det;
+    if (hrec->u < 0.0 || hrec->u > 1.0)
+        return false;
+    qvec = tvec.cross(&edges[0]);
+    hrec->v = ray->Rd.dot(&qvec) * inv_det;
+    if (hrec->v < 0.0 || hrec->u + hrec->v > 1.0)
+        return false;
+    if (det < -EPSILON)
+        hrec->backfacing = true;
     else
-    {
-        if (det > -EPSILON && det < EPSILON)
-            return false;
-        inv_det = 1.0/det;
-        tvec = ray->Ro.minus(v);
-        hrec->u = tvec.dot(&pvec) * inv_det;
-        if (hrec->u < 0.0 || hrec->u > 1.0)
-            return false;
-        qvec = tvec.cross(&edges[0]);
-        hrec->v = ray->Rd.dot(&qvec) * inv_det;
-        if (hrec->v < 0.0 || hrec->u + hrec->v > 1.0)
-            return false;
-        if (det < -EPSILON)
-            hrec->backfacing = true;
-        else
-            hrec->backfacing = false;
-        hrec->t = edges[1].dot(&qvec) * inv_det;
-    }
+        hrec->backfacing = false;
+    hrec->t = edges[1].dot(&qvec) * inv_det;
+
     if (hrec->t < EPSILON)
         return false;
     else
@@ -197,7 +178,7 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
                 {
                     for (int offset = 0; offset < (int)ceil(((float)objects[obj].surfaces[surf].numVerts) / CHUNK); offset++)
                     {
-                        intersectTriangleKrnl<<<blocks, threads>>>(rays, numRays, intersects, hits, &d_objects[obj], &objects[obj].surfaces[surf].vertArray[offset * CHUNK], &objects[obj].surfaces[surf].viewNormArray[offset * CHUNK], (objects[obj].surfaces[surf].numVerts - offset * CHUNK) < CHUNK ? (objects[obj].surfaces[surf].numVerts - offset * CHUNK) : CHUNK , objects[obj].surfaces[surf].material, options->cull);
+                        intersectTriangleKrnl<<<blocks, threads>>>(rays, numRays, intersects, hits, &d_objects[obj], &objects[obj].surfaces[surf].vertArray[offset * CHUNK], &objects[obj].surfaces[surf].viewNormArray[offset * CHUNK], (objects[obj].surfaces[surf].numVerts - offset * CHUNK) < CHUNK ? (objects[obj].surfaces[surf].numVerts - offset * CHUNK) : CHUNK , objects[obj].surfaces[surf].material);
                     }
                 }
             }
@@ -329,7 +310,7 @@ __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int n
     }
 }
 
-__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat, bool cull)
+__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat)
 {
     int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
 
@@ -354,16 +335,13 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
             for (int i =  0; i < (numVerts / 3); i++)
             {
                 HitRecord hrec;
-                if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &N[i * 3], &hrec, false))
+                if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &N[i * 3], &hrec))
                 {
-                    if (!(R[threadIdx.y][threadIdx.x].flags == EYE && hrec.backfacing && cull) || R[threadIdx.y][threadIdx.x].flags == REFLECT)
+                    intersectDist = R[threadIdx.y][threadIdx.x].Ro.distanceTo(&hrec.intersectPoint);
+                    if (intersectDist < minDist)
                     {
-                        intersectDist = R[threadIdx.y][threadIdx.x].Ro.distanceTo(&hrec.intersectPoint);
-                        if (intersectDist < minDist)
-                        {
-                            minDist = intersectDist;
-                            intrs[offset] = Intersect(mat, hrec.backfacing, theObj, hrec.intersectPoint, hrec.normal, minDist);
-                        }
+                        minDist = intersectDist;
+                        intrs[offset] = Intersect(mat, hrec.backfacing, theObj, hrec.intersectPoint, hrec.normal, minDist);
                     }
                 }
             }
@@ -408,7 +386,7 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
         V = Float3D(0.0, 0.0, 0.0).minus(&point);
         V.unitize();
 
-        if (rays[offset].flags == EYE && intrs[offset].backFacing && !options.cull)
+        if (rays[offset].flags == EYE && intrs[offset].backFacing)
             trueNormal = inv_normal;
         else
             trueNormal = intrs[offset].normal;

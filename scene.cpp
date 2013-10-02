@@ -50,7 +50,6 @@ Scene::Scene(QWidget *parent) :
 
     shaders.push_back(shaderProg);
     drawAxis = true;
-    cull = false;
 }
 
 Scene::~Scene()

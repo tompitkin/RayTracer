@@ -42,7 +42,6 @@ void RayTracerCuda::start()
     options.spheresOnly = rayTracer->spheresOnly;
     options.reflections = rayTracer->reflections;
     options.refractions = rayTracer->refractions;
-    options.cull = theScene->cull;
     options.shadows = rayTracer->shadows;
     options.maxRecursiveDepth = rayTracer->maxRecursiveDepth;
 

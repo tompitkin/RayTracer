@@ -61,18 +61,15 @@ DoubleColor RayTracerCalc::trace(RayTracerCalc::Ray ray, int numRecurs)
                         HitRecord hrec;
                         if (ray.intersectTriangle(theObj, poly, &hrec, false))
                         {
-                            if (!(ray.flags == EYE && hrec.backfacing && theScene->cull) || ray.flags == REFLECT || ray.flags == EXTERNAL_REFRACT)
+                            intersectDist = ray.Ro.distanceTo(hrec.intersectPoint);
+                            if (intersectDist < minDist)
                             {
-                                intersectDist = ray.Ro.distanceTo(hrec.intersectPoint);
-                                if (intersectDist < minDist)
-                                {
-                                    minDist = intersectDist;
-                                    minObj = theObj;
-                                    minIntPt = hrec.intersectPoint;
-                                    minNormal = hrec.normal;
-                                    minMatIndex = surf->material;
-                                    minBackfacing = hrec.backfacing;
-                                }
+                                minDist = intersectDist;
+                                minObj = theObj;
+                                minIntPt = hrec.intersectPoint;
+                                minNormal = hrec.normal;
+                                minMatIndex = surf->material;
+                                minBackfacing = hrec.backfacing;
                             }
                         }
                     }
@@ -158,7 +155,7 @@ DoubleColor RayTracerCalc::shade(PMesh *theObj, Double3D point, Double3D normal,
     V = Double3D(0.0, 0.0, 0.0).minus(point);
     V.unitize();
 
-    if (ray.flags == EYE && backFacing && !theScene->cull)
+    if (ray.flags == EYE && backFacing)
         trueNormal = inv_normal;
     else if (ray.flags == INTERNAL_REFRACT && backFacing)
         trueNormal = inv_normal;

@@ -260,7 +260,6 @@ struct Options
     bool spheresOnly;
     bool reflections;
     bool refractions;
-    bool cull;
     bool shadows;
     int maxRecursiveDepth;
 };
@@ -299,11 +298,11 @@ struct Intersect
 };
 
 __device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, float *t);
-__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *n1, HitRecord *hrec, bool cull);
+__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *n1, HitRecord *hrec);
 __global__ void baseKrnl(Ray *rays, Bitmap bitmap);
 __global__ void initIntersectKrnl(int numIntrs, Intersect *intrs);
 __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool *hits);
-__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat, bool cull);
+__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat);
 __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options, bool finalPass);
 __global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass);
 
