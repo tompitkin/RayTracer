@@ -111,6 +111,11 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
     Ray *rays;
     Intersect *intersects;
 
+    cudaEvent_t start, stop;
+    CHECK_ERROR(cudaEventCreate(&start));
+    CHECK_ERROR(cudaEventCreate(&stop));
+    CHECK_ERROR(cudaEventRecord(start, 0));
+
     CHECK_ERROR(cudaMalloc((void**)&d_bitmap, bitmap->width * bitmap->height * 3));
     h_bitmap = (unsigned char*)malloc(sizeof(unsigned char) * (bitmap->width * bitmap->height * 3));
 
@@ -188,6 +193,17 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
     }
 
     CHECK_ERROR(cudaMemcpy(h_bitmap, d_bitmap, bitmap->width * bitmap->height * 3, cudaMemcpyDeviceToHost));
+
+    CHECK_ERROR(cudaEventRecord(stop, 0));
+    CHECK_ERROR(cudaEventSynchronize(stop));
+
+    float time;
+    CHECK_ERROR(cudaEventElapsedTime(&time, start, stop));
+
+    printf("(CUDA) Ray Trace total time: %3.1f ms\n", time);
+
+    CHECK_ERROR(cudaEventDestroy(start));
+    CHECK_ERROR(cudaEventDestroy(stop));
 
     CHECK_ERROR_FREE(cudaFree(d_bitmap), &d_bitmap);
 
