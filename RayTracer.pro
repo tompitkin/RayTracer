@@ -65,7 +65,8 @@ HEADERS  += mainwindow.h \
     RayTracing/raytracer.h \
     RayTracing/raytracercalc.h \
     RayTracing/raytracercuda.h \
-    RayTracing/cudaKernel.h
+    RayTracing/cudaKernel.h \
+    RayTracing/cutil_math.h
 
 OTHER_FILES += Shaders/axes.frag \
     Shaders/axes.vert \

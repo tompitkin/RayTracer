@@ -21,7 +21,7 @@ void RayTracerCuda::start()
     bitmap.height = theScene->camera->getViewportHeight();
     bitmap.pixelWidth = theScene->camera->getWindowWidth() / bitmap.width;
     bitmap.pixelHeight = theScene->camera->getWindowHeight() / bitmap.height;
-    bitmap.firstPixel = Float3D(theScene->camera->windowLeft + bitmap.pixelWidth / 2, theScene->camera->windowBottom + bitmap.pixelHeight / 2, -theScene->camera->near);
+    bitmap.firstPixel = make_float3(theScene->camera->windowLeft + bitmap.pixelWidth / 2, theScene->camera->windowBottom + bitmap.pixelHeight / 2, -theScene->camera->near);
 
     doViewTrans();
 
@@ -60,19 +60,19 @@ void RayTracerCuda::loadObjects(Mesh *output)
     for (int i = 0; i < (int)theScene->objects.size(); i++)
     {
         PMesh *theObj = theScene->objects.at(i).get();
-        output[i].boundingSphere = BoundingSphere(Float3D(&theObj->boundingSphere->center), theObj->boundingSphere->radius);
+        output[i].boundingSphere = BoundingSphere(make_float3(theObj->boundingSphere->center.x, theObj->boundingSphere->center.y, theObj->boundingSphere->center.z), theObj->boundingSphere->radius);
 
-        output[i].viewCenter = Float3D(&theObj->viewCenter);
+        output[i].viewCenter = make_float3(theObj->viewCenter.x, theObj->viewCenter.y, theObj->viewCenter.z);
 
         output[i].numMats = theObj->numMats;
         output[i].materials = new Material[theObj->numMats];
         for (int j = 0; j < theObj->numMats; j++)
         {
-            output[i].materials[j].ka = FloatColor(&theObj->materials[j].ka);
-            output[i].materials[j].kd = FloatColor(&theObj->materials[j].kd);
-            output[i].materials[j].ks = FloatColor(&theObj->materials[j].ks);
-            output[i].materials[j].reflectivity = FloatColor(&theObj->materials[j].reflectivity);
-            output[i].materials[j].refractivity = FloatColor(&theObj->materials[j].refractivity);
+            output[i].materials[j].ka = make_float3(theObj->materials[j].ka.r, theObj->materials[j].ka.g, theObj->materials[j].ka.b);
+            output[i].materials[j].kd = make_float3(theObj->materials[j].kd.r, theObj->materials[j].kd.g, theObj->materials[j].kd.b);
+            output[i].materials[j].ks = make_float3(theObj->materials[j].ks.r, theObj->materials[j].ks.g, theObj->materials[j].ks.b);
+            output[i].materials[j].reflectivity = make_float3(theObj->materials[j].reflectivity.r, theObj->materials[j].reflectivity.g, theObj->materials[j].reflectivity.b);
+            output[i].materials[j].refractivity = make_float3(theObj->materials[j].refractivity.r, theObj->materials[j].refractivity.g, theObj->materials[j].refractivity.b);
             output[i].materials[j].refractiveIndex = theObj->materials[j].refractiveIndex;
             output[i].materials[j].shiny = theObj->materials[j].shiny;
         }
@@ -85,15 +85,15 @@ void RayTracerCuda::loadObjects(Mesh *output)
         {
             output[i].surfaces[surfCount].material = curSurf->material;
             output[i].surfaces[surfCount].numVerts = curSurf->numVerts;
-            output[i].surfaces[surfCount].vertArray = new Float3D[curSurf->numVerts];
-            output[i].surfaces[surfCount].viewNormArray = new Float3D[curSurf->numVerts];
+            output[i].surfaces[surfCount].vertArray = new float3[curSurf->numVerts];
+            output[i].surfaces[surfCount].viewNormArray = new float3[curSurf->numVerts];
 
             for (PMesh::PolyCell *curPoly = curSurf->polyHead.get(); curPoly != nullptr; curPoly = curPoly->next.get())
             {
                 for (PMesh::VertListCell *curVert = curPoly->vert.get(); curVert != nullptr; curVert = curVert->next.get())
                 {
-                    output[i].surfaces[surfCount].vertArray[vertCount] = Float3D(&theObj->vertArray.at(curVert->vert)->viewPos);
-                    output[i].surfaces[surfCount].viewNormArray[vertCount++] = Float3D(&theObj->viewNormArray.at(curVert->vert));
+                    output[i].surfaces[surfCount].vertArray[vertCount] = make_float3(theObj->vertArray.at(curVert->vert)->viewPos.x, theObj->vertArray.at(curVert->vert)->viewPos.y, theObj->vertArray.at(curVert->vert)->viewPos.z);
+                    output[i].surfaces[surfCount].viewNormArray[vertCount++] = make_float3(theObj->viewNormArray.at(curVert->vert).x, theObj->viewNormArray.at(curVert->vert).y, theObj->viewNormArray.at(curVert->vert).z);
                 }
             }
         }
@@ -109,17 +109,17 @@ void RayTracerCuda::loadLights(LightCuda *output)
         if (theScene->lights->lights[i].lightSwitch == Lights::Light::ON)
         {
             curLight = &theScene->lights->lights[i];
-            output[count].ambient.r = curLight->ambient[0];
-            output[count].ambient.g = curLight->ambient[1];
-            output[count].ambient.b = curLight->ambient[2];
-            output[count].diffuse.r = curLight->diffuse[0];
-            output[count].diffuse.g = curLight->diffuse[1];
-            output[count].diffuse.b = curLight->diffuse[2];
-            output[count].specular.r = curLight->specular[0];
-            output[count].specular.g = curLight->specular[1];
-            output[count].specular.b = curLight->specular[2];
+            output[count].ambient.x = curLight->ambient[0];
+            output[count].ambient.y = curLight->ambient[1];
+            output[count].ambient.z = curLight->ambient[2];
+            output[count].diffuse.x = curLight->diffuse[0];
+            output[count].diffuse.y = curLight->diffuse[1];
+            output[count].diffuse.z = curLight->diffuse[2];
+            output[count].specular.x = curLight->specular[0];
+            output[count].specular.y = curLight->specular[1];
+            output[count].specular.z = curLight->specular[2];
             Double3D viewPos = Double3D(curLight->position[0], curLight->position[1], curLight->position[2]).preMultiplyMatrix(theScene->camera->viewMat);
-            output[count].viewPosition = Float3D(&viewPos);
+            output[count].viewPosition = make_float3(viewPos.x, viewPos.y, viewPos.z);
             count++;
         }
     }

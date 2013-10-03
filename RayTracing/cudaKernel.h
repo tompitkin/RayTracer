@@ -6,6 +6,7 @@
 #include <cmath>
 #include "Utilities/doublecolor.h"
 #include "MatrixManipulation/double3d.h"
+#include "cutil_math.h"
 
 #define CHECK_ERROR(err) checkError(err, __FILE__, __LINE__)
 #define CHECK_ERROR_FREE(err, nullObject) checkError(err, __FILE__, __LINE__, (void**)nullObject);
@@ -18,153 +19,28 @@ static const int INTERNAL_REFRACT = 0x2;
 static const int EXTERNAL_REFRACT = 0x4;
 static const float rhoAIR = 1.0;
 
-struct Float3D
-{
-    float x;
-    float y;
-    float z;
-
-    __device__ Float3D(){};
-
-    /*__device__ Float3D()
-    {
-        x = 0.0f;
-        y = 0.0f;
-        z = 0.0f;
-    }*/
-
-    __device__ Float3D(float nX, float nY, float nZ)
-    {
-        x = nX;
-        y = nY;
-        z = nZ;
-    }
-
-    __device__ Float3D(Double3D *from)
-    {
-        x = (float)from->x;
-        y = (float)from->y;
-        z = (float)from->z;
-    }
-
-    __device__ Float3D minus(Float3D *t1)
-    {
-        return Float3D(x - t1->x, y - t1->y, z - t1->z);
-    }
-
-    __device__ Float3D plus(Float3D *t1)
-    {
-        return Float3D(x + t1->x, y + t1->y, z + t1->z);
-    }
-
-    __device__ Float3D cross(Float3D *t1)
-    {
-        return Float3D((y)*(t1->z)-(t1->y)*(z), (z)*(t1->x)-(t1->z)*(x), (x)*(t1->y)-(t1->x)*(y));
-    }
-
-    __device__ Float3D sDiv(float s)
-    {
-        return Float3D(x/s, y/s, z/s);
-    }
-
-    __device__ Float3D sMult(float s)
-    {
-        return Float3D(s*x, s*y, s*z);
-    }
-
-    __device__ Float3D getUnit()
-    {
-        float s = sqrt(x*x+y*y+z*z);
-        if (s > 0)
-            return Float3D( x/s, y/s, z/s);
-        return Float3D();
-    }
-
-    __device__ float dot(Float3D *t1)
-    {
-        return (x)*(t1->x) + (y)*(t1->y) + (z)*(t1->z);
-    }
-
-    __device__ float distanceTo(Float3D *point)
-    {
-        Float3D newVect = this->minus(point);
-        return (float)sqrt(newVect.x * newVect.x + newVect.y * newVect.y + newVect.z * newVect.z);
-    }
-
-    __device__ void unitize()
-    {
-        float s = sqrt(x*x+y*y+z*z);
-        if (s > 0)
-        {
-            x = x/s;
-            y = y/s;
-            z = z/s;
-        }
-    }
-};
-
-struct FloatColor
-{
-    float r;
-    float g;
-    float b;
-    float a;
-
-    __device__ FloatColor(){};
-
-    __device__ FloatColor(float nR, float nG, float nB, float nA)
-    {
-        r = nR;
-        g = nG;
-        b = nB;
-        a = nA;
-    }
-
-    __device__ FloatColor(DoubleColor *from)
-    {
-        r = (float)from->r;
-        g = (float)from->g;
-        b = (float)from->b;
-        a = (float)from->a;
-    }
-
-    __device__ void plus(FloatColor other)
-    {
-        r = r + other.r;
-        g = g + other.g;
-        b = b + other.b;
-    }
-
-    __device__ void scale(float scaleValue)
-    {
-        r *= scaleValue;
-        g *= scaleValue;
-        b *= scaleValue;
-    }
-};
-
 struct Bitmap
 {
     unsigned char *data;
     float pixelWidth, pixelHeight;
     int width, height;
-    Float3D firstPixel;
+    float3 firstPixel;
 };
 
 struct BoundingSphere
 {
-    Float3D center;
+    float3 center;
     float radius;
     float radiusSq;
 
     __device__ BoundingSphere()
     {
-        center = Float3D(0.0, 0.0, 0.0);
+        center = make_float3(0.0, 0.0, 0.0);
         radius = 0;
         radiusSq = 0;
     }
 
-    BoundingSphere(Float3D center, float radius)
+    BoundingSphere(float3 center, float radius)
     {
         this->center = center;
         this->radius = radius;
@@ -174,11 +50,11 @@ struct BoundingSphere
 
 struct Material
 {
-    FloatColor ka;
-    FloatColor kd;
-    FloatColor ks;
-    FloatColor reflectivity;
-    FloatColor refractivity;
+    float3 ka;
+    float3 kd;
+    float3 ks;
+    float3 reflectivity;
+    float3 refractivity;
     float refractiveIndex;
     float shiny;
 };
@@ -186,8 +62,8 @@ struct Material
 struct Surface
 {
     int numVerts, material;
-    Float3D *vertArray;
-    Float3D *viewNormArray;
+    float3 *vertArray;
+    float3 *viewNormArray;
 
     ~Surface()
     {
@@ -203,7 +79,7 @@ struct Mesh
     int numMats;
     int numSurfs;
     BoundingSphere boundingSphere;
-    Float3D viewCenter;
+    float3 viewCenter;
     Material *materials;
     Surface *surfaces;
 
@@ -219,8 +95,8 @@ struct Mesh
 
 struct Ray
 {
-    Float3D Rd;
-    Float3D Ro;
+    float3 Rd;
+    float3 Ro;
     int flags;
 
     __device__ Ray(){};
@@ -232,14 +108,14 @@ struct Ray
         flags = 0;
     }*/
 
-    __device__ Ray(Float3D dir, Float3D origin)
+    __device__ Ray(float3 dir, float3 origin)
     {
         Rd = dir;
         Ro = origin;
         flags = 0;
     }
 
-    __device__ Ray(Float3D dir, Float3D origin, int type)
+    __device__ Ray(float3 dir, float3 origin, int type)
     {
         Rd = dir;
         Ro = origin;
@@ -249,10 +125,10 @@ struct Ray
 
 struct LightCuda
 {
-    FloatColor ambient;
-    FloatColor diffuse;
-    FloatColor specular;
-    Float3D viewPosition;
+    float3 ambient;
+    float3 diffuse;
+    float3 specular;
+    float3 viewPosition;
 };
 
 struct Options
@@ -268,7 +144,7 @@ struct HitRecord
 {
     float t, u, v;
     bool backfacing;
-    Float3D intersectPoint, normal;
+    float3 intersectPoint, normal;
 };
 
 struct Intersect
@@ -277,8 +153,8 @@ struct Intersect
     float distance;
     bool backFacing;
     Mesh *theObj;
-    Float3D point;
-    Float3D normal;
+    float3 point;
+    float3 normal;
 
     __device__ Intersect()
     {
@@ -286,7 +162,7 @@ struct Intersect
         distance = 100000000.0;
     }
 
-    __device__ Intersect(int matIndex, bool backFacing, Mesh *obj, Float3D point, Float3D normal, float distance)
+    __device__ Intersect(int matIndex, bool backFacing, Mesh *obj, float3 point, float3 normal, float distance)
     {
         materialIndex = matIndex;
         this->backFacing = backFacing;
@@ -297,12 +173,12 @@ struct Intersect
     }
 };
 
-__device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, float *t);
-__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *n1, HitRecord *hrec);
+__device__ bool intersectSphere(Ray *ray, float radiusSq, float3 viewCenter, float *t);
+__device__ bool intersectTriangle(Ray *ray, float3 *v1, float3 *n1, HitRecord *hrec);
 __global__ void baseKrnl(Ray *rays, Bitmap bitmap);
 __global__ void initIntersectKrnl(int numIntrs, Intersect *intrs);
 __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool *hits);
-__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat);
+__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, float3 *verts, float3 *norms, int numVerts, int mat);
 __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options, bool finalPass);
 __global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass);
 

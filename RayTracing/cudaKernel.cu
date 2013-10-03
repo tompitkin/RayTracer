@@ -1,16 +1,16 @@
 #include "cudaKernel.h"
 #include "stdio.h"
 
-__device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, float *t)
+__device__ bool intersectSphere(Ray *ray, float radiusSq, float3 viewCenter, float *t)
 {
     const float EPS = 0.00001;
     float t0=0.0, t1=0.0, A=0.0, B=0.0, C=0.0, discrim=0.0;
-    Float3D RoMinusSc = ray->Ro.minus(&viewCenter);
+    float3 RoMinusSc = ray->Ro - viewCenter;
     float fourAC = 0.0;
 
-    A = ray->Rd.dot(&ray->Rd);
-    B = 2.0 * (ray->Rd.dot(&RoMinusSc));
-    C = RoMinusSc.dot(&RoMinusSc) - radiusSq;
+    A = dot(ray->Rd, ray->Rd);
+    B = 2.0 * dot(ray->Rd, RoMinusSc);
+    C = dot(RoMinusSc, RoMinusSc) - radiusSq;
     fourAC = (4*A*C);
 
     discrim = (B*B) - fourAC;
@@ -53,47 +53,47 @@ __device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, fl
     }
 }
 
-__device__ bool intersectTriangle(Ray *ray, Float3D *v, Float3D *n, HitRecord *hrec)
+__device__ bool intersectTriangle(Ray *ray, float3 *v, float3 *n, HitRecord *hrec)
 {
-    Float3D edges[2];
-    Float3D pvec, qvec, tvec;
+    float3 edges[2];
+    float3 pvec, qvec, tvec;
     float det, inv_det;
     const float EPSILON = 0.000001;
 
-    edges[0] = v[1].minus(&v[0]);
-    edges[1] = v[2].minus(&v[0]);
-    pvec = ray->Rd.cross(&edges[1]);
-    det = edges[0].dot(&pvec);
+    edges[0] = v[1] - v[0];
+    edges[1] = v[2] - v[0];
+    pvec = cross(ray->Rd, edges[1]);
+    det = dot(edges[0], pvec);
 
     if (det > -EPSILON && det < EPSILON)
         return false;
     inv_det = 1.0/det;
-    tvec = ray->Ro.minus(v);
-    hrec->u = tvec.dot(&pvec) * inv_det;
+    tvec = ray->Ro - v[0];
+    hrec->u = dot(tvec, pvec) * inv_det;
     if (hrec->u < 0.0 || hrec->u > 1.0)
         return false;
-    qvec = tvec.cross(&edges[0]);
-    hrec->v = ray->Rd.dot(&qvec) * inv_det;
+    qvec = cross(tvec, edges[0]);
+    hrec->v = dot(ray->Rd, qvec) * inv_det;
     if (hrec->v < 0.0 || hrec->u + hrec->v > 1.0)
         return false;
     if (det < -EPSILON)
         hrec->backfacing = true;
     else
         hrec->backfacing = false;
-    hrec->t = edges[1].dot(&qvec) * inv_det;
+    hrec->t = dot(edges[1], qvec) * inv_det;
 
     if (hrec->t < EPSILON)
         return false;
     else
     {
-        hrec->intersectPoint = Float3D((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
+        hrec->intersectPoint = make_float3((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
         float w = 1.0 - hrec->u - hrec->v;
 
-        Float3D sumNorms = n[2].sMult(hrec->v);
-        sumNorms = n[1].sMult(hrec->u).plus(&sumNorms);
-        sumNorms = n[0].sMult(w).plus(&sumNorms);
+        float3 sumNorms = n[2] * hrec->v;
+        sumNorms = n[1] * hrec->u + sumNorms;
+        sumNorms = n[0] * w + sumNorms;
         hrec->normal = sumNorms;
-        hrec->normal.unitize();
+        hrec->normal = normalize(hrec->normal);
         return true;
     }
 }
@@ -130,10 +130,10 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
         memcpy(h_objects[x].surfaces, objects[x].surfaces, sizeof(Surface) * objects[x].numSurfs);
         for (int y = 0; y < h_objects[x].numSurfs; y++)
         {
-            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].vertArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts));
-            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].vertArray, objects[x].surfaces[y].vertArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
-            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].viewNormArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts));
-            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].viewNormArray, objects[x].surfaces[y].viewNormArray, sizeof(Float3D) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
+            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].vertArray, sizeof(float3) * h_objects[x].surfaces[y].numVerts));
+            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].vertArray, objects[x].surfaces[y].vertArray, sizeof(float3) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
+            CHECK_ERROR(cudaMalloc((void**)&h_objects[x].surfaces[y].viewNormArray, sizeof(float3) * h_objects[x].surfaces[y].numVerts));
+            CHECK_ERROR(cudaMemcpy(h_objects[x].surfaces[y].viewNormArray, objects[x].surfaces[y].viewNormArray, sizeof(float3) * h_objects[x].surfaces[y].numVerts, cudaMemcpyHostToDevice));
             delete [] objects[x].surfaces[y].vertArray;
             delete [] objects[x].surfaces[y].viewNormArray;
             objects[x].surfaces[y].vertArray = h_objects[x].surfaces[y].vertArray;
@@ -256,11 +256,11 @@ __global__ void baseKrnl(Ray *rays, Bitmap bitmap)
 
     if (offset < (bitmap.width * bitmap.height))
     {
-        Float3D point(bitmap.firstPixel);
+        float3 point(bitmap.firstPixel);
         point.x += (offset % bitmap.width) * bitmap.pixelWidth;
         point.y += ((offset - (threadIdx.x + blockIdx.x * blockDim.x)) / bitmap.width) * bitmap.pixelHeight;
-        rays[offset].Rd = point.getUnit();
-        rays[offset].Ro = Float3D(0.0, 0.0, 0.0);
+        rays[offset].Rd = normalize(point);
+        rays[offset].Ro = make_float3(0.0, 0.0, 0.0);
         rays[offset].flags = EYE;
     }
 }
@@ -290,8 +290,8 @@ __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int n
         float t = 0.0;
         float intersectDist = 0.0;
         float minDist = 100000000.0;
-        Float3D intersectPt;
-        Float3D normal;
+        float3 intersectPt;
+        float3 normal;
         Mesh *theObj;
 
         for (int obj = 0; obj < numObjects; obj++)
@@ -303,10 +303,10 @@ __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int n
                     continue;
                 if (spheresOnly)
                 {
-                    intersectPt = Float3D((R[threadIdx.y][threadIdx.x].Ro.x+(R[threadIdx.y][threadIdx.x].Rd.x*t)), (R[threadIdx.y][threadIdx.x].Ro.y+(R[threadIdx.y][threadIdx.x].Rd.y*t)), (R[threadIdx.y][threadIdx.x].Ro.z+(R[threadIdx.y][threadIdx.x].Rd.z*t)));
-                    normal = (intersectPt.minus(&theObj->viewCenter).sDiv(theObj->boundingSphere.radius));
-                    normal.unitize();
-                    intersectDist = Float3D(0.0, 0.0, 0.0).distanceTo(&intersectPt);
+                    intersectPt = make_float3((R[threadIdx.y][threadIdx.x].Ro.x+(R[threadIdx.y][threadIdx.x].Rd.x*t)), (R[threadIdx.y][threadIdx.x].Ro.y+(R[threadIdx.y][threadIdx.x].Rd.y*t)), (R[threadIdx.y][threadIdx.x].Ro.z+(R[threadIdx.y][threadIdx.x].Rd.z*t)));
+                    normal = ((intersectPt - theObj->viewCenter) / theObj->boundingSphere.radius);
+                    normal = normalize(normal);
+                    intersectDist = length(make_float3(0.0, 0.0, 0.0) - intersectPt);
                     if (intersectDist < minDist)
                     {
                         minDist = intersectDist;
@@ -326,12 +326,12 @@ __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int n
     }
 }
 
-__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat)
+__global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, float3 *verts, float3 *norms, int numVerts, int mat)
 {
     int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
 
-    __shared__ Float3D V[CHUNK];
-    __shared__ Float3D N[CHUNK];
+    __shared__ float3 V[CHUNK];
+    __shared__ float3 N[CHUNK];
     __shared__ Ray R[16][16];
 
     if (offset < numRays)
@@ -353,7 +353,7 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
                 HitRecord hrec;
                 if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &N[i * 3], &hrec))
                 {
-                    intersectDist = R[threadIdx.y][threadIdx.x].Ro.distanceTo(&hrec.intersectPoint);
+                    intersectDist = length(R[threadIdx.y][threadIdx.x].Ro - hrec.intersectPoint);
                     if (intersectDist < minDist)
                     {
                         minDist = intersectDist;
@@ -376,31 +376,31 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
     {
         int materialIndex = intrs[offset].materialIndex;
         Mesh *theObj = intrs[offset].theObj;
-        FloatColor Ka(0.0, 0.0, 0.0, 1.0);
-        FloatColor Kd(0.0, 0.0, 0.0, 1.0);
-        FloatColor Ks(0.0, 0.0, 0.0, 1.0);
-        FloatColor shadeColor(0.0, 0.0, 0.0, 1.0);
-        FloatColor ambColor(0.0, 0.0, 0.0, 1.0);
-        Float3D point = intrs[offset].point;
-        Float3D trueNormal(0.0, 0.0, 0.0);
-        Float3D inv_normal = intrs[offset].normal.sMult(-1.0);
-        Float3D R(0.0, 0.0, 0.0);
-        Float3D L(0.0, 0.0, 0.0);
-        Float3D V(0.0, 0.0, 0.0);
+        float3 Ka = make_float3(0.0, 0.0, 0.0);
+        float3 Kd = make_float3(0.0, 0.0, 0.0);
+        float3 Ks = make_float3(0.0, 0.0, 0.0);
+        float3 shadeColor = make_float3(0.0, 0.0, 0.0);
+        float3 ambColor = make_float3(0.0, 0.0, 0.0);
+        float3 point = intrs[offset].point;
+        float3 trueNormal = make_float3(0.0, 0.0, 0.0);
+        float3 inv_normal = intrs[offset].normal * -1.0;
+        float3 R = make_float3(0.0, 0.0, 0.0);
+        float3 L = make_float3(0.0, 0.0, 0.0);
+        float3 V = make_float3(0.0, 0.0, 0.0);
 
-        layer[offset*4 + 3] = (int) (theObj->materials[materialIndex].reflectivity.r * 255);
+        layer[offset*4 + 3] = (int) (theObj->materials[materialIndex].reflectivity.x * 255);
 
         Ka = theObj->materials[materialIndex].ka;
         Kd = theObj->materials[materialIndex].kd;
         Ks = theObj->materials[materialIndex].ks;
 
-        ambColor.r = Ka.r * lights[0].ambient.r;
-        ambColor.g = Ka.g * lights[0].ambient.g;
-        ambColor.b = Ka.b * lights[0].ambient.b;
+        ambColor.x = Ka.x * lights[0].ambient.x;
+        ambColor.y = Ka.y * lights[0].ambient.y;
+        ambColor.z = Ka.z * lights[0].ambient.z;
 
-        shadeColor.plus(ambColor);
-        V = Float3D(0.0, 0.0, 0.0).minus(&point);
-        V.unitize();
+        shadeColor = shadeColor + ambColor;
+        V = make_float3(0.0, 0.0, 0.0) - point;
+        V = normalize(V);
 
         if (rays[offset].flags == EYE && intrs[offset].backFacing)
             trueNormal = inv_normal;
@@ -412,37 +412,37 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
         {
             curLight = &lights[i];
 
-            L = curLight->viewPosition.minus(&point);
-            L.unitize();
-            float LdotN = L.dot(&trueNormal);
+            L = curLight->viewPosition - point;
+            L = normalize(L);
+            float LdotN = dot(L, trueNormal);
             LdotN = max(0.0, LdotN);
-            FloatColor diffComponent(0.0, 0.0, 0.0, 1.0);
+            float3 diffComponent = make_float3(0.0, 0.0, 0.0);
             if (LdotN > 0.0)
-                diffComponent.plus(FloatColor(curLight->diffuse.r*Kd.r*LdotN, curLight->diffuse.g*Kd.g*LdotN, curLight->diffuse.b*Kd.b*LdotN, 1.0));
-            shadeColor.plus(diffComponent);
+                diffComponent = diffComponent + (make_float3(curLight->diffuse.x*Kd.x*LdotN, curLight->diffuse.y*Kd.y*LdotN, curLight->diffuse.z*Kd.z*LdotN));
+            shadeColor = shadeColor + diffComponent;
 
-            Float3D Pr = trueNormal.sMult(LdotN);
-            Float3D sub = Pr.sMult(2.0);
-            R = L.sMult(-1.0).plus(&sub);
-            R.unitize();
-            float RdotV = R.dot(&V);
+            float3 Pr = trueNormal * LdotN;
+            float3 sub = Pr * 2.0;
+            R = L * -1.0 + sub;
+            R = normalize(R);
+            float RdotV = dot(R, V);
             RdotV = max(0.0, RdotV);
             float cosPhiPower = 0.0;
             if (RdotV > 0.0)
                 cosPhiPower = pow(RdotV, theObj->materials[materialIndex].shiny);
-            FloatColor specComponent(curLight->specular.r*Ks.r*cosPhiPower, curLight->specular.g*Ks.g*cosPhiPower, curLight->specular.b*Ks.b*cosPhiPower, 1.0);
-            shadeColor.plus(specComponent);
+            float3 specComponent = make_float3(curLight->specular.x*Ks.x*cosPhiPower, curLight->specular.y*Ks.y*cosPhiPower, curLight->specular.z*Ks.z*cosPhiPower);
+            shadeColor = shadeColor + specComponent;
         }
 
-        shadeColor.r = shadeColor.r < 0.0 ? 0.0 : (shadeColor.r > 1.0 ? 1.0 : shadeColor.r);
-        shadeColor.g = shadeColor.g < 0.0 ? 0.0 : (shadeColor.g > 1.0 ? 1.0 : shadeColor.g);
-        shadeColor.b = shadeColor.b < 0.0 ? 0.0 : (shadeColor.b > 1.0 ? 1.0 : shadeColor.b);
+        shadeColor.x = shadeColor.x < 0.0 ? 0.0 : (shadeColor.x > 1.0 ? 1.0 : shadeColor.x);
+        shadeColor.y = shadeColor.y < 0.0 ? 0.0 : (shadeColor.y > 1.0 ? 1.0 : shadeColor.y);
+        shadeColor.z = shadeColor.z < 0.0 ? 0.0 : (shadeColor.z > 1.0 ? 1.0 : shadeColor.z);
 
         if (finalPass)
         {
-            layer[offset*4 + 0] = shadeColor.r * 255;
-            layer[offset*4 + 1] = shadeColor.g * 255;
-            layer[offset*4 + 2] = shadeColor.b * 255;
+            layer[offset*4 + 0] = shadeColor.x * 255;
+            layer[offset*4 + 1] = shadeColor.y * 255;
+            layer[offset*4 + 2] = shadeColor.z * 255;
         }
     }
 }
