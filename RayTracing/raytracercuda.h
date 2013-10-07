@@ -15,7 +15,7 @@ public:
 
     void start();
     void buildBitmap();
-    void loadObjects(Mesh *output);
+    void loadObjects(BoundingSphere *spheres, Material *materials, int *numMaterials, float4 **verts, int *numVerts);
     void loadLights(LightCuda *output);
     void doViewTrans();
 

@@ -26,8 +26,30 @@ void RayTracerCuda::start()
     doViewTrans();
 
     int numObjects = theScene->objects.size();
-    Mesh objects[numObjects];
-    loadObjects(objects);
+    int matCount = 0;
+    for (int i = 0; i < numObjects; i++)
+        matCount += theScene->objects.at(i)->numMats;
+    int numMaterials[numObjects];
+    int numVerts[numObjects];
+    BoundingSphere spheres[numObjects];
+    Material materials[matCount];
+    float4 *verts[numObjects];
+    float4 *triangles[numObjects];
+    loadObjects(spheres, materials, numMaterials, verts, numVerts);
+
+    printf("numObjects %d\n", numObjects);
+    for (int x = 0; x < numObjects; x++)
+    {
+        printf("numVerts %d\n", numVerts[x]);
+        triangles[x] = new float4[numVerts[x]];
+        for (int y = 0; y < (numVerts[x] / 3); y++)
+        {
+            triangles[x][y*3] = verts[x][y*3];
+            triangles[x][y*3+1] = make_float4(verts[x][y*3+1].x - verts[x][y*3].x, verts[x][y*3+1].y - verts[x][y*3].y, verts[x][y*3+1].z - verts[x][y*3].z, verts[x][y*3+1].w);
+            triangles[x][y*3+1] = make_float4(verts[x][y*3+2].x - verts[x][y*3].x, verts[x][y*3+2].y - verts[x][y*3].y, verts[x][y*3+2].z - verts[x][y*3].z, verts[x][y*3+2].w);
+            printf("Index %d\n", (int)triangles[x][y*3].w);
+        }
+    }
 
     int numLights = 0;
     for (int x = 0; x < 8; x++)
@@ -45,7 +67,7 @@ void RayTracerCuda::start()
     options.shadows = rayTracer->shadows;
     options.maxRecursiveDepth = rayTracer->maxRecursiveDepth;
 
-    cudaStart(&bitmap, objects, numObjects, lights, numLights, &options);
+    cudaStart(&bitmap, numObjects, spheres, materials, numMaterials, triangles, numVerts, lights, numLights, &options);
 
     if (rayTracer->data != nullptr)
     {
@@ -53,47 +75,51 @@ void RayTracerCuda::start()
         rayTracer->data = nullptr;
     }
     rayTracer->data = bitmap.data;
+
+    for (int x = 0; x < numObjects; x++)
+    {
+        delete [] verts[x];
+        delete [] triangles[x];
+    }
 }
 
-void RayTracerCuda::loadObjects(Mesh *output)
+void RayTracerCuda::loadObjects(BoundingSphere *spheres, Material *materials, int *numMaterials, float4 **verts, int *numVerts)
 {
+    int offset = 0;
+
     for (int i = 0; i < (int)theScene->objects.size(); i++)
     {
         PMesh *theObj = theScene->objects.at(i).get();
-        output[i].boundingSphere = BoundingSphere(make_float3(theObj->boundingSphere->center.x, theObj->boundingSphere->center.y, theObj->boundingSphere->center.z), theObj->boundingSphere->radius);
+        spheres[i] = BoundingSphere(make_float3(theObj->viewCenter.x, theObj->viewCenter.y, theObj->viewCenter.z), theObj->boundingSphere->radius);
 
-        output[i].viewCenter = make_float3(theObj->viewCenter.x, theObj->viewCenter.y, theObj->viewCenter.z);
-
-        output[i].numMats = theObj->numMats;
-        output[i].materials = new Material[theObj->numMats];
-        for (int j = 0; j < theObj->numMats; j++)
+        numMaterials[i] = theObj->numMats;
+        int matOffset = 0;
+        for (int j = 0; j < i; j++)
+            matOffset += numMaterials[j];
+        for (int j = 0; j < theObj->numMats; j++, offset++)
         {
-            output[i].materials[j].ka = make_float3(theObj->materials[j].ka.r, theObj->materials[j].ka.g, theObj->materials[j].ka.b);
-            output[i].materials[j].kd = make_float3(theObj->materials[j].kd.r, theObj->materials[j].kd.g, theObj->materials[j].kd.b);
-            output[i].materials[j].ks = make_float3(theObj->materials[j].ks.r, theObj->materials[j].ks.g, theObj->materials[j].ks.b);
-            output[i].materials[j].reflectivity = make_float3(theObj->materials[j].reflectivity.r, theObj->materials[j].reflectivity.g, theObj->materials[j].reflectivity.b);
-            output[i].materials[j].refractivity = make_float3(theObj->materials[j].refractivity.r, theObj->materials[j].refractivity.g, theObj->materials[j].refractivity.b);
-            output[i].materials[j].refractiveIndex = theObj->materials[j].refractiveIndex;
-            output[i].materials[j].shiny = theObj->materials[j].shiny;
+            materials[offset].ka = make_float3(theObj->materials[j].ka.r, theObj->materials[j].ka.g, theObj->materials[j].ka.b);
+            materials[offset].kd = make_float3(theObj->materials[j].kd.r, theObj->materials[j].kd.g, theObj->materials[j].kd.b);
+            materials[offset].ks = make_float3(theObj->materials[j].ks.r, theObj->materials[j].ks.g, theObj->materials[j].ks.b);
+            materials[offset].reflectivity = make_float3(theObj->materials[j].reflectivity.r, theObj->materials[j].reflectivity.g, theObj->materials[j].reflectivity.b);
+            materials[offset].refractivity = make_float3(theObj->materials[j].refractivity.r, theObj->materials[j].refractivity.g, theObj->materials[j].refractivity.b);
+            materials[offset].refractiveIndex = theObj->materials[j].refractiveIndex;
+            materials[offset].shiny = theObj->materials[j].shiny;
         }
+        numVerts[i] = 0;
+        for (PMesh::SurfCell *curSurf = theObj->surfHead.get(); curSurf != nullptr; curSurf = curSurf->next.get())
+            numVerts[i] += curSurf->numVerts;
 
-        output[i].numSurfs = theObj->numSurf;
-        output[i].surfaces = new Surface[theObj->numSurf];
+        verts[i] = new float4[numVerts[i]];
 
-        int surfCount = 0, vertCount = 0;
-        for (PMesh::SurfCell *curSurf = theObj->surfHead.get(); curSurf != nullptr; curSurf = curSurf->next.get(), surfCount++, vertCount = 0)
+        int vertCount = 0;
+        for (PMesh::SurfCell *curSurf = theObj->surfHead.get(); curSurf != nullptr; curSurf = curSurf->next.get(), vertCount = 0)
         {
-            output[i].surfaces[surfCount].material = curSurf->material;
-            output[i].surfaces[surfCount].numVerts = curSurf->numVerts;
-            output[i].surfaces[surfCount].vertArray = new float3[curSurf->numVerts];
-            output[i].surfaces[surfCount].viewNormArray = new float3[curSurf->numVerts];
-
             for (PMesh::PolyCell *curPoly = curSurf->polyHead.get(); curPoly != nullptr; curPoly = curPoly->next.get())
             {
                 for (PMesh::VertListCell *curVert = curPoly->vert.get(); curVert != nullptr; curVert = curVert->next.get())
                 {
-                    output[i].surfaces[surfCount].vertArray[vertCount] = make_float3(theObj->vertArray.at(curVert->vert)->viewPos.x, theObj->vertArray.at(curVert->vert)->viewPos.y, theObj->vertArray.at(curVert->vert)->viewPos.z);
-                    output[i].surfaces[surfCount].viewNormArray[vertCount++] = make_float3(theObj->viewNormArray.at(curVert->vert).x, theObj->viewNormArray.at(curVert->vert).y, theObj->viewNormArray.at(curVert->vert).z);
+                    verts[i][vertCount] = make_float4(theObj->vertArray.at(curVert->vert)->viewPos.x, theObj->vertArray.at(curVert->vert)->viewPos.y, theObj->vertArray.at(curVert->vert)->viewPos.z, matOffset + curSurf->material);
                 }
             }
         }
