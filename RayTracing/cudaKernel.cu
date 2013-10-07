@@ -53,49 +53,36 @@ __device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, fl
     }
 }
 
-__device__ bool intersectTriangle(Ray *ray, Float3D *v, Float3D *n, HitRecord *hrec)
+__device__ bool intersectTriangle(Ray *ray, Float3D *tri, float *t, bool *backFacing, float *v, float *u)
 {
-    Float3D edges[2];
     Float3D pvec, qvec, tvec;
     float det, inv_det;
     const float EPSILON = 0.000001;
 
-    edges[0] = v[1].minus(&v[0]);
-    edges[1] = v[2].minus(&v[0]);
-    pvec = ray->Rd.cross(&edges[1]);
-    det = edges[0].dot(&pvec);
+    pvec = ray->Rd.cross(&tri[2]);
+    det = tri[1].dot(&pvec);
 
     if (det > -EPSILON && det < EPSILON)
         return false;
     inv_det = 1.0/det;
-    tvec = ray->Ro.minus(v);
-    hrec->u = tvec.dot(&pvec) * inv_det;
-    if (hrec->u < 0.0 || hrec->u > 1.0)
+    tvec = ray->Ro.minus(&tri[0]);
+    *u = tvec.dot(&pvec) * inv_det;
+    if (*u < 0.0 || *u > 1.0)
         return false;
-    qvec = tvec.cross(&edges[0]);
-    hrec->v = ray->Rd.dot(&qvec) * inv_det;
-    if (hrec->v < 0.0 || hrec->u + hrec->v > 1.0)
+    qvec = tvec.cross(&tri[1]);
+    *v = ray->Rd.dot(&qvec) * inv_det;
+    if (*v < 0.0 || *u + *v > 1.0)
         return false;
     if (det < -EPSILON)
-        hrec->backfacing = true;
+        *backFacing = true;
     else
-        hrec->backfacing = false;
-    hrec->t = edges[1].dot(&qvec) * inv_det;
+        *backFacing = false;
+    *t = tri[2].dot(&qvec) * inv_det;
 
-    if (hrec->t < EPSILON)
+    if (*t < EPSILON)
         return false;
-    else
-    {
-        hrec->intersectPoint = Float3D((ray->Ro.x + (ray->Rd.x * hrec->t)), (ray->Ro.y + (ray->Rd.y * hrec->t)), (ray->Ro.z + (ray->Rd.z * hrec->t)));
-        float w = 1.0 - hrec->u - hrec->v;
 
-        Float3D sumNorms = n[2].sMult(hrec->v);
-        sumNorms = n[1].sMult(hrec->u).plus(&sumNorms);
-        sumNorms = n[0].sMult(w).plus(&sumNorms);
-        hrec->normal = sumNorms;
-        hrec->normal.unitize();
-        return true;
-    }
+    return true;
 }
 
 void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options)
@@ -337,6 +324,8 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
     if (offset < numRays)
     {
         R[threadIdx.y][threadIdx.x] = rays[offset];
+        float t, v, u, w;
+        bool backFacing;
         float intersectDist = 0.0;
         float minDist = intrs[offset].distance;
         int index = (threadIdx.y + threadIdx.x * 16) % numVerts;
@@ -350,14 +339,19 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
         {
             for (int i =  0; i < (numVerts / 3); i++)
             {
-                HitRecord hrec;
-                if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &N[i * 3], &hrec))
+                if (intersectTriangle(&R[threadIdx.y][threadIdx.x], &V[i * 3], &t, &backFacing, &v, &u))
                 {
-                    intersectDist = R[threadIdx.y][threadIdx.x].Ro.distanceTo(&hrec.intersectPoint);
+                    Float3D intersectPt = Float3D((R[threadIdx.y][threadIdx.x].Ro.x+(R[threadIdx.y][threadIdx.x].Rd.x*t)), (R[threadIdx.y][threadIdx.x].Ro.y+(R[threadIdx.y][threadIdx.x].Rd.y*t)), (R[threadIdx.y][threadIdx.x].Ro.z+(R[threadIdx.y][threadIdx.x].Rd.z*t)));
+                    intersectDist = R[threadIdx.y][threadIdx.x].Ro.distanceTo(&intersectPt);
                     if (intersectDist < minDist)
                     {
+                        w = 1.0 - u - v;
+                        Float3D normal = N[i * 3 + 2].sMult(v);
+                        normal = N[i * 3 + 1].sMult(u).plus(&normal);
+                        normal = N[i * 3].sMult(w).plus(&normal);
+                        normal.unitize();
                         minDist = intersectDist;
-                        intrs[offset] = Intersect(mat, hrec.backfacing, theObj, hrec.intersectPoint, hrec.normal, minDist);
+                        intrs[offset] = Intersect(mat, backFacing, theObj, intersectPt, normal, minDist);
                     }
                 }
             }

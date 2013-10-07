@@ -264,13 +264,6 @@ struct Options
     int maxRecursiveDepth;
 };
 
-struct HitRecord
-{
-    float t, u, v;
-    bool backfacing;
-    Float3D intersectPoint, normal;
-};
-
 struct Intersect
 {
     int materialIndex;
@@ -297,8 +290,8 @@ struct Intersect
     }
 };
 
-__device__ bool intersectSphere(Ray *ray, float radiusSq, Float3D viewCenter, float *t);
-__device__ bool intersectTriangle(Ray *ray, Float3D *v1, Float3D *n1, HitRecord *hrec);
+__device__ bool intersectSphere(Ray *ray, const float radiusSq, const Float3D viewCenter, float &t);
+__device__ bool intersectTriangle(Ray *ray, Float3D *tri, float *t, bool *backFacing, float *v, float *u);
 __global__ void baseKrnl(Ray *rays, Bitmap bitmap);
 __global__ void initIntersectKrnl(int numIntrs, Intersect *intrs);
 __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool *hits);
