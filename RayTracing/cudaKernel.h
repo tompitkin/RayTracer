@@ -296,7 +296,8 @@ __global__ void baseKrnl(Ray *rays, Bitmap bitmap);
 __global__ void initIntersectKrnl(int numIntrs, Intersect *intrs);
 __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int numObjects, bool spheresOnly, Intersect *intrs, bool *hits);
 __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, bool *hits, Mesh *theObj, Float3D *verts, Float3D *norms, int numVerts, int mat);
-__global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options, bool finalPass);
+__global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options);
+__global__ void reflectKrnl(Ray *rays, int numRays, Intersect *intrs);
 __global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass);
 
 void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights, int numLights, Options *options);

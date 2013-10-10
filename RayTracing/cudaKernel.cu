@@ -160,6 +160,7 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
     baseKrnl<<<blocks, threads>>>(rays, *bitmap);
     for(int pass = 0; pass <= options->maxRecursiveDepth; pass++)
     {
+        CHECK_ERROR(cudaMemset(hits, false, sizeof(bool) * numRays));
         initIntersectKrnl<<<blocks, threads>>>(numRays, intersects);
         intersectSphereKrnl<<<blocks, threads>>>(rays, numRays, d_objects, numObjects, options->spheresOnly, intersects, hits);
         if (!options->spheresOnly)
@@ -175,9 +176,12 @@ void cudaStart(Bitmap *bitmap, Mesh *objects, int numObjects, LightCuda *lights,
                 }
             }
         }
-        shadeKrnl<<<blocks, threads>>>(rays, numRays, intersects, layers[pass], d_lights, numLights, *options, pass == options->maxRecursiveDepth ? true : false);
-        composeKrnl<<<blocks, threads>>>(*bitmap, layers[pass], pass == options->maxRecursiveDepth ? true : false);
+        shadeKrnl<<<blocks, threads>>>(rays, numRays, intersects, layers[pass], d_lights, numLights, *options);
+        if (options->reflections)
+            reflectKrnl<<<blocks, threads>>>(rays, numRays, intersects);
     }
+    for(int pass = options->maxRecursiveDepth; pass >= 0; pass--)
+        composeKrnl<<<blocks, threads>>>(*bitmap, layers[pass], pass == options->maxRecursiveDepth ? true : false);
 
     CHECK_ERROR(cudaMemcpy(h_bitmap, d_bitmap, bitmap->width * bitmap->height * 3, cudaMemcpyDeviceToHost));
 
@@ -305,10 +309,6 @@ __global__ void intersectSphereKrnl(Ray *rays, int numRays, Mesh *objects, int n
                     hits[offset] = true;
                 }
             }
-            else if (!spheresOnly)
-            {
-                hits[offset] = false;
-            }
         }
     }
 }
@@ -359,12 +359,10 @@ __global__ void intersectTriangleKrnl(Ray *rays, int numRays, Intersect *intrs, 
     }
 }
 
-__global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options, bool finalPass)
+__global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned char *layer, LightCuda *lights, int numLights, Options options)
 {
     //Map from threadIdx & blockIdx to pixel position
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
 
     if (offset < numRays && intrs[offset].theObj != NULL)
     {
@@ -428,25 +426,38 @@ __global__ void shadeKrnl(Ray *rays, int numRays, Intersect *intrs, unsigned cha
             shadeColor.plus(specComponent);
         }
 
-        shadeColor.r = shadeColor.r < 0.0 ? 0.0 : (shadeColor.r > 1.0 ? 1.0 : shadeColor.r);
-        shadeColor.g = shadeColor.g < 0.0 ? 0.0 : (shadeColor.g > 1.0 ? 1.0 : shadeColor.g);
-        shadeColor.b = shadeColor.b < 0.0 ? 0.0 : (shadeColor.b > 1.0 ? 1.0 : shadeColor.b);
+        layer[offset*4 + 0] = (shadeColor.r < 0.0 ? 0.0 : (shadeColor.r > 1.0 ? 1.0 : shadeColor.r)) * 255.0;
+        layer[offset*4 + 1] = (shadeColor.g < 0.0 ? 0.0 : (shadeColor.g > 1.0 ? 1.0 : shadeColor.g)) * 255.0;
+        layer[offset*4 + 2] = (shadeColor.b < 0.0 ? 0.0 : (shadeColor.b > 1.0 ? 1.0 : shadeColor.b)) * 255.0;
+    }
+}
 
-        if (finalPass)
-        {
-            layer[offset*4 + 0] = shadeColor.r * 255;
-            layer[offset*4 + 1] = shadeColor.g * 255;
-            layer[offset*4 + 2] = shadeColor.b * 255;
-        }
+__global__ void reflectKrnl(Ray *rays, int numRays, Intersect *intrs)
+{
+    int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
+
+    if (offset < numRays && intrs[offset].theObj != NULL)
+    {
+        Float3D trueNormal;
+
+        if (rays[offset].flags == EYE && intrs[offset].backFacing)
+            trueNormal = intrs[offset].normal.sMult(-1.0);
+        else
+            trueNormal = intrs[offset].normal;
+
+        Float3D Pr = trueNormal.sMult(rays[offset].Rd.dot(&trueNormal));
+        Float3D sub = Pr.sMult(2.0);
+        Float3D refVect = rays[offset].Rd.minus(&sub);
+        refVect.unitize();
+
+        rays[offset] = Ray(refVect, intrs[offset].point, REFLECT);
     }
 }
 
 __global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass)
 {
     //Map from threadIdx & blockIdx to pixel position
-    int x = threadIdx.x + blockIdx.x * blockDim.x;
-    int y = threadIdx.y + blockIdx.y * blockDim.y;
-    int offset = x + y * blockDim.x * gridDim.x;
+    int offset = (threadIdx.x + blockIdx.x * blockDim.x) + (threadIdx.y + blockIdx.y * blockDim.y) * blockDim.x * gridDim.x;
 
     if (offset < (bitmap.width * bitmap.height))
     {
@@ -458,7 +469,14 @@ __global__ void composeKrnl(Bitmap bitmap, unsigned char *layer, bool finalPass)
         }
         else
         {
-
+            FloatColor shadeColor(layer[offset*4 + 0]/255.0, layer[offset*4 + 1]/255.0, layer[offset*4 + 2]/255.0, 1.0);
+            FloatColor reflColor(bitmap.data[offset*3 + 0]/255.0, bitmap.data[offset*3 + 1]/255.0, bitmap.data[offset*3 + 2]/255.0, 1.0);
+            shadeColor.scale(1.0 - (float)(layer[offset*4 + 3] / 255.0));
+            reflColor.scale((float)layer[offset*4 + 3] / 255.0);
+            shadeColor.plus(reflColor);
+            bitmap.data[offset*3 + 0] = (shadeColor.r < 0.0 ? 0.0 : (shadeColor.r > 1.0 ? 1.0 : shadeColor.r)) * 255.0;
+            bitmap.data[offset*3 + 1] = (shadeColor.g < 0.0 ? 0.0 : (shadeColor.g > 1.0 ? 1.0 : shadeColor.g)) * 255.0;
+            bitmap.data[offset*3 + 2] = (shadeColor.b < 0.0 ? 0.0 : (shadeColor.b > 1.0 ? 1.0 : shadeColor.b)) * 255.0;
         }
     }
 
