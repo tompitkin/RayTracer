@@ -57,7 +57,7 @@ __device__ bool intersectTriangle(Ray *ray, Float3D *tri, float *t, bool *backFa
 {
     Float3D pvec, qvec, tvec;
     float det, inv_det;
-    const float EPSILON = 0.000001;
+    const float EPSILON = 0.00001;
 
     pvec = ray->Rd.cross(&tri[2]);
     det = tri[1].dot(&pvec);
