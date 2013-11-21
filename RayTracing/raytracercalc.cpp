@@ -1,6 +1,7 @@
 #include "raytracercalc.h"
 #include "scene.h"
 #include "RayTracing/raytracer.h"
+#include <QElapsedTimer>
 
 RayTracerCalc::RayTracerCalc(Scene *theScene, RayTracer *rayTracer)
 {
@@ -382,7 +383,11 @@ void RayTracerCalc::run()
         free(rayTracer->data);
         rayTracer->data = nullptr;
     }
+
+    QElapsedTimer timer;
+    timer.start();
     rayTracer->data = castRays();
+    printf("(CPU) Ray Trace total time: %lld ms\n", timer.elapsed());
 
     this->quit();
 }
